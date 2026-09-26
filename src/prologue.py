@@ -30,19 +30,22 @@ def parse_phases(text: str) -> list[list[str]]:
 
 
 class Prologue:
-    def __init__(self, phases, chars_per_second: float = CHARS_PER_SECOND) -> None:
+    def __init__(
+        self, phases, chars_per_second: float = CHARS_PER_SECOND, title: str | None = None
+    ) -> None:
         self.phases = [list(phase) for phase in phases]
         self.chars_per_second = chars_per_second
+        self.title = title
         self.index = 0
         self.revealed = 0.0
 
     @classmethod
-    def from_file(cls, path: Path = PROLOGUE_PATH) -> "Prologue":
-        return cls(parse_phases(path.read_text(encoding="utf-8")))
+    def from_file(cls, path: Path = PROLOGUE_PATH, title: str | None = None) -> "Prologue":
+        return cls(parse_phases(path.read_text(encoding="utf-8")), title=title)
 
     @classmethod
-    def from_text(cls, text: str) -> "Prologue":
-        return cls(parse_phases(text))
+    def from_text(cls, text: str, title: str | None = None) -> "Prologue":
+        return cls(parse_phases(text), title=title)
 
     @property
     def phase_count(self) -> int:
@@ -108,7 +111,19 @@ class Prologue:
 
     def draw(self, surface, font, color=TEXT_COLOR, prompt_color=TARGET_COLOR) -> None:
         leading = font.get_linesize() * TEXT_SCALE
-        top = max(MARGIN, (surface.get_height() - leading * len(self.phases)) // 2)
+        top = max(
+            MARGIN,
+            (surface.get_height() - leading * (len(self.phases) + (1 if self.title else 0)))
+            // 2,
+        )
+        if self.title:
+            heading = font.render(self.title, False, prompt_color)
+            scaled = pygame.transform.scale(
+                heading,
+                (heading.get_width() * TEXT_SCALE, heading.get_height() * TEXT_SCALE),
+            )
+            surface.blit(scaled, ((surface.get_width() - scaled.get_width()) // 2, top))
+            top += leading
         for index, line in enumerate(self.visible_lines()):
             if not line:
                 continue

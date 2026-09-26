@@ -10,6 +10,7 @@ import pygame
 
 import main
 from src.chamber import Chamber
+from src.chapters import Narration
 from src.flow import Flow
 from src.progression import Progress
 from src.prologue import Prologue
@@ -35,6 +36,7 @@ class MainShellTest(unittest.TestCase):
         self.chamber = Chamber()
         self.session = Session(self.chamber)
         self.prologue = Prologue([["one"], ["two"]])
+        self.narration = Narration(self.prologue)
 
     def test_boot_lands_on_the_main_menu(self):
         recorded = []
@@ -96,19 +98,19 @@ class MainShellTest(unittest.TestCase):
                 self.session,
                 state,
                 self.font,
-                self.prologue,
+                self.narration,
             )
 
     def test_title_ignores_unrelated_keys(self):
         self.assertIs(
-            main.handle_key(pygame.K_x, State.TITLE, self.session, self.prologue),
+            main.handle_key(pygame.K_x, State.TITLE, self.session, self.narration),
             State.TITLE,
         )
 
     def test_confirm_key_leaves_title_for_prologue(self):
         for key in main.CONFIRM_KEYS:
             self.assertIs(
-                main.handle_key(key, State.TITLE, self.session, self.prologue),
+                main.handle_key(key, State.TITLE, self.session, self.narration),
                 State.PROLOGUE,
             )
 
@@ -116,7 +118,7 @@ class MainShellTest(unittest.TestCase):
         self.assertFalse(self.prologue.phase_finished)
         self.assertIs(
             main.handle_key(
-                pygame.K_RETURN, State.PROLOGUE, self.session, self.prologue
+                pygame.K_RETURN, State.PROLOGUE, self.session, self.narration
             ),
             State.PROLOGUE,
         )
@@ -127,7 +129,7 @@ class MainShellTest(unittest.TestCase):
         state = State.PROLOGUE
         for _ in range(self.prologue.phase_count * 2):
             state = main.handle_key(
-                pygame.K_RETURN, State.PROLOGUE, self.session, self.prologue
+                pygame.K_RETURN, State.PROLOGUE, self.session, self.narration
             )
         self.assertIs(state, State.PLAY)
         self.assertTrue(self.prologue.finished)
@@ -143,7 +145,7 @@ class MainShellTest(unittest.TestCase):
                     pygame.K_RETURN,
                     State.PROLOGUE,
                     self.session,
-                    self.prologue,
+                    self.narration,
                     flow,
                 )
             self.assertIs(state, State.PLAY)
@@ -155,30 +157,30 @@ class MainShellTest(unittest.TestCase):
         before = self.session.earth_alloc
         for key in main.MOVE_KEYS:
             self.assertIs(
-                main.handle_key(key, State.PLAY, self.session, self.prologue),
+                main.handle_key(key, State.PLAY, self.session, self.narration),
                 State.PLAY,
             )
         self.assertLess(self.session.earth_alloc, before)
 
     def test_jump_key_is_accepted_in_play(self):
         self.assertIs(
-            main.handle_key(pygame.K_SPACE, State.PLAY, self.session, self.prologue),
+            main.handle_key(pygame.K_SPACE, State.PLAY, self.session, self.narration),
             State.PLAY,
         )
 
     def test_escape_toggles_pause(self):
         self.assertIs(
-            main.handle_key(pygame.K_ESCAPE, State.PLAY, self.session, self.prologue),
+            main.handle_key(pygame.K_ESCAPE, State.PLAY, self.session, self.narration),
             State.PAUSED,
         )
         self.assertIs(
-            main.handle_key(pygame.K_ESCAPE, State.PAUSED, self.session, self.prologue),
+            main.handle_key(pygame.K_ESCAPE, State.PAUSED, self.session, self.narration),
             State.PLAY,
         )
 
     def test_pause_ignores_movement_keys(self):
         before = self.session.earth_alloc
-        main.handle_key(pygame.K_RIGHT, State.PAUSED, self.session, self.prologue)
+        main.handle_key(pygame.K_RIGHT, State.PAUSED, self.session, self.narration)
         self.assertEqual(self.session.earth_alloc, before)
 
     def test_r_restart_clears_run_and_returns_to_play(self):
@@ -186,7 +188,7 @@ class MainShellTest(unittest.TestCase):
         self.session.game_over = True
         for state in (State.GAMEOVER, State.CLEARED):
             self.assertIs(
-                main.handle_key(pygame.K_r, state, self.session, self.prologue),
+                main.handle_key(pygame.K_r, state, self.session, self.narration),
                 State.PLAY,
             )
             self.assertEqual(self.session.elapsed, 0.0)
@@ -196,7 +198,7 @@ class MainShellTest(unittest.TestCase):
     def test_r_is_ignored_while_playing(self):
         before = self.session.earth_alloc
         self.assertIs(
-            main.handle_key(pygame.K_r, State.PLAY, self.session, self.prologue),
+            main.handle_key(pygame.K_r, State.PLAY, self.session, self.narration),
             State.PLAY,
         )
         self.assertEqual(self.session.earth_alloc, before)

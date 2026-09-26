@@ -3,6 +3,7 @@ from pathlib import Path
 import pygame
 
 from src.audio import Audio
+from src.chapters import Narration
 from src.flow import Flow
 from src.overlay import CrtOverlay
 from src.progression import Progress
@@ -68,7 +69,7 @@ def handle_key(
     key: int,
     state: State,
     session: Session,
-    prologue: Prologue,
+    narration: Narration,
     flow: Flow | None = None,
     screens=None,
 ) -> State:
@@ -76,10 +77,14 @@ def handle_key(
         if key in CONFIRM_KEYS:
             return State.PROLOGUE
     elif state is State.PROLOGUE:
-        if key in CONFIRM_KEYS and not prologue.advance():
+        if key in CONFIRM_KEYS and not narration.active.advance():
             if flow is not None:
-                flow.progress.seen_prologue = True
-                flow.progress.save()
+                if narration.in_chapter:
+                    flow.mark_chapter_seen()
+                else:
+                    flow.progress.seen_prologue = True
+                    flow.progress.save()
+            narration.end()
             return State.PLAY
     elif state is State.PLAY:
         if key in MOVE_KEYS:
@@ -104,7 +109,8 @@ def handle_key(
         if key in CONFIRM_KEYS:
             if state is State.CLEARED and flow is not None:
                 if flow.advance():
-                    return State.PLAY
+                    narration.begin(flow.pending_chapter())
+                    return State.PROLOGUE if narration.in_chapter else State.PLAY
             elif flow is None:
                 session.reset()
                 return State.PLAY
@@ -179,7 +185,7 @@ def render(
     session,
     state,
     font,
-    prologue,
+    narration,
     sprites=None,
     flow=None,
     screens=None,
@@ -188,7 +194,7 @@ def render(
     if state is State.TITLE:
         draw_title(canvas, font)
     elif state is State.PROLOGUE:
-        prologue.draw(canvas, font)
+        narration.active.draw(canvas, font)
     elif state in MENU_STATES and screens is not None:
         screens.draw(canvas, font, state)
     else:
@@ -205,7 +211,7 @@ def main() -> None:
     font = load_font()
 
     flow = Flow(Progress())
-    prologue = Prologue.from_file()
+    narration = Narration(Prologue.from_file())
     audio = Audio()
     audio.music_volume = flow.progress.music_volume
     audio.sfx_volume = flow.progress.sfx_volume
@@ -243,13 +249,13 @@ def main() -> None:
                     state = result
                 else:
                     state = handle_key(
-                        event.key, state, flow.session, prologue, flow, screens
+                        event.key, state, flow.session, narration, flow, screens
                     )
                 if state is State.PROLOGUE and previous is not State.PROLOGUE:
-                    prologue.reset()
+                    narration.active.reset()
 
         if state is State.PROLOGUE:
-            prologue.update(dt)
+            narration.active.update(dt)
         elif state is State.PLAY:
             flow.session.step(dt, pygame.key.get_pressed())
             if flow.session.won:
@@ -272,7 +278,7 @@ def main() -> None:
             flow.session,
             state,
             font,
-            prologue,
+            narration,
             sprites,
             flow,
             screens,

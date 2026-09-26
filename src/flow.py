@@ -1,7 +1,9 @@
 from src.achievements import earned_on_clear
 from src.chamber import Chamber
+from src.chapters import chapter_for
 from src.levels import LEVELS, level_at
 from src.progression import Progress
+from src.prologue import Prologue
 from src.session import Session
 
 
@@ -30,6 +32,21 @@ class Flow:
             self.start(self.level_index + 1)
             return True
         return False
+
+    def pending_chapter(self) -> Prologue | None:
+        """The chapter introducing the current chamber, if it has not been seen.
+
+        Returns None for the first chamber, which the prologue introduces, and
+        for any chapter already watched.
+        """
+        if not 1 <= self.level_index < self.level_count:
+            return None
+        if self.progress.has_seen_chapter(self.level_index):
+            return None
+        return chapter_for(self.level_index)
+
+    def mark_chapter_seen(self) -> bool:
+        return self.progress.mark_chapter_seen(self.level_index)
 
     def record_win(self) -> None:
         session = self.session

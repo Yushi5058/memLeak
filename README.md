@@ -25,7 +25,7 @@ python main.py
 | --- | --- |
 | `Up` / `Down` | Move the menu selection |
 | `Left` / `Right` | Adjust the selected settings row |
-| `Enter` / `Space` | Confirm, or advance the prologue one phase |
+| `Enter` / `Space` | Confirm, or advance the current script one phase |
 | `Esc` | Back out of a menu, or pause and resume |
 | `Left` / `A` | Step left (costs 0.5 years) |
 | `Right` / `D` | Step right (costs 0.5 years) |
@@ -52,7 +52,7 @@ retries.
 ## The three chambers
 
 Progress is saved to `~/.memleak/progress.json`, so unlocks, best times,
-best years, achievements, whether you have seen the prologue, and your
+best years, achievements, which scripts you have already read, and your
 audio volume and mute choice all survive a restart.
 
 | Chamber | What changes |
@@ -115,10 +115,15 @@ src/sprites.py       sprite loading, normalising, rectangle fallback
 src/audio.py         sfx and music playback, degrades to silence
 src/overlay.py       cached CRT scanline and vignette
 src/prologue.py      phased typewriter reveal of PROLOGUE.txt
+src/chapters.py      CHAPTER_I/II scripts and the on-screen script holder
 tools/gen_sfx.py     regenerates the sound effects
 tools/gen_music.py   regenerates the chiptune loops
 tests/               unit tests
 ```
+
+`PROLOGUE.txt` introduces the first chamber. Each later chamber has its own
+`CHAPTER_*.txt` script, shown when you walk in from the cleared screen, and
+only the first time. Lines wrap to 18 columns so they fit the 320px screen.
 
 Balance lives entirely in `src/settings.py`. The simulation runs at a
 fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour
@@ -127,7 +132,7 @@ so pixels stay square.
 ## Development
 
 ```sh
-python -m unittest discover -s tests -t .   # 223 tests
+python -m unittest discover -s tests -t .   # 247 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music

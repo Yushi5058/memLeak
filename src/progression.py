@@ -47,6 +47,7 @@ class Progress:
         self.best_years: dict[int, float] = {}
         self.achievements: list[str] = []
         self.seen_prologue = False
+        self.seen_chapters: list[int] = []
         self.music_volume = VOLUME_STEPS
         self.sfx_volume = VOLUME_STEPS
         self.muted = False
@@ -73,6 +74,11 @@ class Progress:
         else:
             self.achievements = []
         self.seen_prologue = bool(raw.get("seen_prologue", False))
+        chapters = raw.get("seen_chapters", [])
+        if isinstance(chapters, list):
+            self.seen_chapters = [i for i in (_as_int(v, -1) for v in chapters) if i >= 0]
+        else:
+            self.seen_chapters = []
         self.music_volume = _as_volume(raw.get("music_volume", VOLUME_STEPS))
         self.sfx_volume = _as_volume(raw.get("sfx_volume", VOLUME_STEPS))
         self.muted = bool(raw.get("muted", False))
@@ -86,6 +92,7 @@ class Progress:
             "best_years": {str(k): v for k, v in self.best_years.items()},
             "achievements": sorted(set(self.achievements)),
             "seen_prologue": self.seen_prologue,
+            "seen_chapters": sorted(set(self.seen_chapters)),
             "music_volume": self.music_volume,
             "sfx_volume": self.sfx_volume,
             "muted": self.muted,
@@ -116,6 +123,16 @@ class Progress:
 
     def best_for(self, index: int) -> tuple[float, float]:
         return self.best_time.get(index, 0.0), self.best_years.get(index, 0.0)
+
+    def has_seen_chapter(self, index: int) -> bool:
+        return index in self.seen_chapters
+
+    def mark_chapter_seen(self, index: int) -> bool:
+        if index in self.seen_chapters:
+            return False
+        self.seen_chapters.append(index)
+        self.save()
+        return True
 
     def has_achievement(self, name: str) -> bool:
         return name in self.achievements
