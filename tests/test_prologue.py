@@ -41,8 +41,24 @@ class PrologueTest(unittest.TestCase):
         self.assertTrue(PROLOGUE_PATH.is_file())
         self.assertTrue(self.prologue.phases)
 
-    def test_script_is_split_into_five_phases(self):
-        self.assertEqual(self.prologue.phase_count, 5)
+    def test_script_is_split_into_six_phases(self):
+        self.assertEqual(self.prologue.phase_count, 6)
+
+    def test_final_beat_is_gated_behind_its_own_enter(self):
+        phases = self.prologue.phases
+        self.assertEqual(phases[-1], ["Nothing else", "matters."])
+        self.assertEqual(phases[-2][-1], "Reach the gate.")
+
+        while self.prologue.phase_index < len(phases) - 2:
+            self.prologue.advance()
+            self.prologue.advance()
+        self.assertEqual(self.prologue.lines[-1], "Reach the gate.")
+        self.assertNotIn("Nothing else", self.prologue.lines)
+
+        self.prologue.advance()
+        self.prologue.advance()
+        self.assertEqual(self.prologue.phase_index, len(phases) - 1)
+        self.assertEqual(self.prologue.lines, ["Nothing else", "matters."])
 
     def test_no_line_exceeds_eighteen_columns(self):
         self.assertEqual(MAX_COLUMNS, 18)
@@ -123,8 +139,8 @@ class PrologueTest(unittest.TestCase):
         self.assertEqual(presses, self.prologue.phase_count * 2 - 1)
         self.assertTrue(self.prologue.finished)
 
-    def test_pressing_ten_times_ends_the_script(self):
-        for _ in range(10):
+    def test_pressing_eleven_times_ends_the_script(self):
+        for _ in range(11):
             self.prologue.advance()
         self.assertTrue(self.prologue.finished)
 
@@ -165,7 +181,7 @@ class PrologueTest(unittest.TestCase):
 
     def test_shipped_text_parses_into_the_expected_phase_count(self):
         self.assertEqual(
-            len(parse_phases(PROLOGUE_PATH.read_text(encoding="utf-8"))), 5
+            len(parse_phases(PROLOGUE_PATH.read_text(encoding="utf-8"))), 6
         )
 
     def test_text_is_drawn_inside_the_left_margin(self):
