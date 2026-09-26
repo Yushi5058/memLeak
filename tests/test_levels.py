@@ -20,6 +20,7 @@ from src.levels import (
     validate_all,
     validate_level,
 )
+from src.player import PLAYER_HEIGHT, Player
 from src.session import Session
 
 
@@ -28,7 +29,53 @@ class NoKeys:
         return False
 
 
+class HoldRight(NoKeys):
+    def __getitem__(self, key):
+        return key in (pygame.K_RIGHT, pygame.K_d)
+
+
 NO_KEYS = NoKeys()
+RIGHT_KEYS = HoldRight()
+
+
+def hop_is_feasible(level, src, dst, frames=260):
+    """Can a player jump from `src` and land on `dst` without taking a hit?
+
+    Sweeps the jump timing across a full run-up while holding right, which is
+    the arc that has to work for a platform to be climbable.
+    """
+    chamber = Chamber(level)
+    for jump_frame in range(1, 90):
+        player = Player(src[0] + 1, src[1] - PLAYER_HEIGHT)
+        for frame in range(frames):
+            player.handle_input(RIGHT_KEYS)
+            if frame == jump_frame:
+                player.jump()
+            player.update(1.0 / 60.0, chamber.platforms)
+            if chamber.hits_hazard(player.rect):
+                break
+            if (
+                player.on_ground
+                and abs(player.rect.bottom - dst[1]) < 1
+                and player.rect.right > dst[0]
+                and player.rect.left < dst[0] + dst[2]
+            ):
+                return True
+    return False
+
+
+def target_is_reachable(level, src, frames=200):
+    """Can a player walk off `src` and touch the gate?"""
+    chamber = Chamber(level)
+    player = Player(src[0] + 1, src[1] - PLAYER_HEIGHT)
+    for _ in range(frames):
+        player.handle_input(RIGHT_KEYS)
+        player.update(1.0 / 60.0, chamber.platforms)
+        if chamber.hits_hazard(player.rect):
+            return False
+        if chamber.reached_target(player.rect):
+            return True
+    return False
 
 
 class LevelCatalogueTest(unittest.TestCase):
@@ -106,6 +153,39 @@ class LevelCatalogueTest(unittest.TestCase):
             any("resting" in p for p in validate_level(broken)),
             validate_level(broken),
         )
+
+
+class CargoSpineTraversalTest(unittest.TestCase):
+    """CARGO SPINE has to be climbable, not just valid.
+
+    The wall on the third platform used to stand 44px tall. Clearing it needed
+    a 44px rise, which took 0.197s of drift at walking speed -- 21.6px to the
+    right -- but the ledge before the wall was only 15px wide, so the player
+    was always carried into it. The hop simulation pins the fix.
+    """
+
+    def test_lower_platforms_can_be_climbed(self):
+        ground, first, second, third, fourth = LEVEL_TWO.platforms
+        self.assertTrue(hop_is_feasible(LEVEL_TWO, ground, first))
+        self.assertTrue(hop_is_feasible(LEVEL_TWO, first, second))
+
+    def test_the_wall_on_the_third_platform_can_be_cleared(self):
+        _, _, _, third, fourth = LEVEL_TWO.platforms
+        self.assertTrue(hop_is_feasible(LEVEL_TWO, third, fourth))
+
+    def test_the_gate_is_reachable_from_the_top_platform(self):
+        self.assertTrue(target_is_reachable(LEVEL_TWO, LEVEL_TWO.platforms[4]))
+
+    def test_the_old_tall_wall_was_not_clearable(self):
+        """Guards the guard: the sweep must be able to fail.
+
+        Without this, a broken sweep would make the test above pass vacuously.
+        """
+        _, _, _, third, fourth = LEVEL_TWO.platforms
+        broken = replace(
+            LEVEL_TWO, hazards=LEVEL_TWO.hazards[:3] + ((192, 46, 10, 44),)
+        )
+        self.assertFalse(hop_is_feasible(broken, third, fourth))
 
 
 class SpawnProfileTest(unittest.TestCase):
