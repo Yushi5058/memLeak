@@ -2,7 +2,9 @@ from pathlib import Path
 
 import pygame
 
+from src.audio import Audio
 from src.chamber import Chamber
+from src.overlay import CrtOverlay
 from src.session import Session
 from src.settings import (
     BG_COLOR,
@@ -98,6 +100,8 @@ def main() -> None:
 
     chamber = Chamber()
     session = Session(chamber)
+    audio = Audio()
+    overlay = CrtOverlay(INTERNAL_WIDTH, INTERNAL_HEIGHT)
     state = State.PLAY
     running = True
     frame_no = 0
@@ -125,7 +129,11 @@ def main() -> None:
             elif session.game_over:
                 state = State.GAMEOVER
 
+        for cue in session.drain_events():
+            audio.play(cue)
+
         render(canvas, chamber, session, state, font)
+        overlay.draw(canvas)
         window.blit(pygame.transform.scale(canvas, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
         pygame.display.flip()
 

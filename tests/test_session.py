@@ -175,5 +175,53 @@ class SessionTest(unittest.TestCase):
         self.assertFalse(any(h.is_spent() for h in self.session.falling))
 
 
+    def test_jump_emits_jump_event(self):
+        self.settle()
+        self.session.press_jump()
+        self.assertIn("jump", self.session.events)
+
+    def test_midair_jump_emits_nothing(self):
+        self.settle()
+        self.session.press_jump()
+        self.session.events.clear()
+        self.assertFalse(self.session.press_jump())
+        self.assertEqual(self.session.events, [])
+
+    def test_landing_emits_land_event(self):
+        self.settle()
+        self.session.press_jump()
+        for _ in range(180):
+            self.session.step(DT, NO_KEYS)
+            if "land" in self.session.events:
+                break
+        self.assertIn("land", self.session.events)
+
+    def test_hazard_emits_hazard_event(self):
+        self.settle()
+        self.session.player.rect.topleft = (125.0, 150.0)
+        self.session.step(0.0, NO_KEYS)
+        self.assertIn("hazard", self.session.events)
+
+    def test_portal_emits_portal_event(self):
+        self.settle()
+        self.session.player.rect.topleft = (262.0, 62.0)
+        self.session.step(0.0, NO_KEYS)
+        self.assertIn("portal", self.session.events)
+
+    def test_drain_events_returns_each_event_once(self):
+        self.settle()
+        self.session.press_jump()
+        drained = self.session.drain_events()
+        self.assertIn("jump", drained)
+        self.assertEqual(self.session.drain_events(), [])
+        self.assertEqual(self.session.events, [])
+
+    def test_reset_clears_pending_events(self):
+        self.settle()
+        self.session.press_jump()
+        self.session.reset()
+        self.assertEqual(self.session.drain_events(), [])
+
+
 if __name__ == "__main__":
     unittest.main()
