@@ -172,21 +172,24 @@ class Screens:
         title = font.render(
             f"ACHIEVEMENTS  {earned}/{len(ACHIEVEMENTS)}", False, TARGET_COLOR
         )
-        canvas.blit(title, ((canvas.get_width() - title.get_width()) // 2, 24))
+        self._centered(canvas, title, 24)
         y = 40
         for achievement in ACHIEVEMENTS:
             unlocked = progress.has_achievement(achievement.key)
             mark = "*" if unlocked else " "
             color = TEXT_COLOR if unlocked else DIM_COLOR
-            canvas.blit(
-                font.render(f"{mark} {achievement.label}", False, color), (40, y)
+            # Label+hint on one line is 41ch at 8px, 8px wider than the 320px screen.
+            self._centered(
+                canvas, font.render(f"{mark} {achievement.label}", False, color), y
             )
-            canvas.blit(
-                font.render(achievement.hint, False, DIM_COLOR), (150, y)
+            self._centered(
+                canvas, font.render(achievement.hint, False, DIM_COLOR), y + 9
             )
-            y += 11
+            y += 22
         self._hint(canvas, font, "ESC BACK")
 
+    def _centered(self, canvas, surface, y: int) -> None:
+        canvas.blit(surface, ((canvas.get_width() - surface.get_width()) // 2, y))
+
     def _hint(self, canvas, font, text: str) -> None:
-        msg = font.render(text, False, HAZARD_COLOR)
-        canvas.blit(msg, ((canvas.get_width() - msg.get_width()) // 2, 160))
+        self._centered(canvas, font.render(text, False, HAZARD_COLOR), 160)

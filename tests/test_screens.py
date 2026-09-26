@@ -8,6 +8,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame
 
+from src.achievements import ACHIEVEMENTS
 from src.audio import VOLUME_STEPS, Audio
 from src.flow import Flow
 from src.levels import LEVELS
@@ -259,6 +260,31 @@ class ScreensTest(unittest.TestCase):
         self.screens.build_level_menu()
         label = pick(self.screens.levels, LEVELS[0].name)["label"]
         self.assertIn("12.25s", label)
+
+    def test_achievement_rows_are_centered(self):
+        recorded = []
+
+        class Spy:
+            def __init__(self, real):
+                self.real = real
+
+            def get_width(self):
+                return self.real.get_width()
+
+            def blit(self, surface, pos, *args, **kwargs):
+                recorded.append((surface.get_width(), pos[0]))
+                return self.real.blit(surface, pos, *args, **kwargs)
+
+        self.screens.draw(Spy(self.canvas), self.font, State.ACHIEVEMENTS)
+        width = self.canvas.get_width()
+        self.assertTrue(recorded)
+        for surface_width, x in recorded:
+            self.assertEqual(x, (width - surface_width) // 2)
+
+    def test_achievement_text_fits_inside_the_screen(self):
+        for achievement in ACHIEVEMENTS:
+            for text in (f"* {achievement.label}", achievement.hint):
+                self.assertLessEqual(self.font.size(text)[0], self.canvas.get_width())
 
 
 if __name__ == "__main__":
