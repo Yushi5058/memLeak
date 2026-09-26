@@ -19,8 +19,9 @@ from src.levels import (
     level_at,
     validate_all,
     validate_level,
+    widest_clear_floor,
 )
-from src.player import PLAYER_HEIGHT, Player
+from src.player import PLAYER_HEIGHT, PLAYER_WIDTH, Player
 from src.session import Session
 
 
@@ -267,6 +268,74 @@ class ChamberPerLevelTest(unittest.TestCase):
             session = Session(chamber)
             session.step(1.0 / 60.0, NO_KEYS)
             chamber.draw(canvas, session.falling)
+
+
+class CoreBreachTraversalTest(unittest.TestCase):
+    """CORE BREACH has to be standable, not merely valid.
+
+    The spikes on the second and third platforms used to span 34px of a 42px
+    platform, leaving 4px of clear floor at each end. The player is 12px wide,
+    so it could not stand on either platform: every landing was a spike hit and
+    the chamber could not be finished. The validator now enforces the clear
+    floor invariant, and the last test proves that check can still fail.
+
+    The hop sweep is deliberately not used here. It always spawns at a
+    platform's left edge while holding right, which cannot land on a narrow
+    platform nor touch a gate whose platform is spiked at that edge -- both are
+    artefacts of the sweep, not blockers.
+    """
+
+    def test_every_platform_leaves_room_to_stand(self):
+        for platform in LEVEL_THREE.platforms:
+            gap = widest_clear_floor(platform, LEVEL_THREE.hazards)
+            self.assertGreaterEqual(
+                gap,
+                PLAYER_WIDTH,
+                f"platform {platform} leaves {gap}px of clear floor, "
+                f"less than the {PLAYER_WIDTH}px player",
+            )
+
+    def test_the_middle_platforms_are_tighter_than_cargo_spine(self):
+        """CORE BREACH must stay harder than the chamber before it."""
+        _, _, breach_low, breach_high, _, _ = LEVEL_THREE.platforms
+        _, _, spine_low, spine_high, _ = LEVEL_TWO.platforms
+        for breach, spine in ((breach_low, spine_low), (breach_high, spine_high)):
+            self.assertLess(
+                widest_clear_floor(breach, LEVEL_THREE.hazards),
+                widest_clear_floor(spine, LEVEL_TWO.hazards),
+            )
+
+    def test_the_lower_platforms_can_be_climbed(self):
+        ground, first, second = LEVEL_THREE.platforms[:3]
+        self.assertTrue(hop_is_feasible(LEVEL_THREE, ground, first))
+        self.assertTrue(hop_is_feasible(LEVEL_THREE, first, second))
+
+    def test_the_gate_is_reachable_from_the_top_platform(self):
+        """Spawns inside the clear floor, since the platform's left edge is spiked."""
+        chamber = Chamber(LEVEL_THREE)
+        top = LEVEL_THREE.platforms[5]
+        clear_from = widest_clear_floor(top, LEVEL_THREE.hazards)
+        start = top[0] + top[2] - clear_from + PLAYER_WIDTH
+        player = Player(start, top[1] - PLAYER_HEIGHT)
+        for _ in range(200):
+            player.handle_input(RIGHT_KEYS)
+            player.update(1.0 / 60.0, chamber.platforms)
+            self.assertFalse(chamber.hits_hazard(player.rect))
+            if chamber.reached_target(player.rect):
+                return
+        self.fail("the gate was never reached from the top platform")
+
+    def test_the_old_wide_spans_would_be_rejected(self):
+        """Guards the guard: the clear floor check must be able to fail."""
+        broken = replace(
+            LEVEL_THREE,
+            hazards=((44, 155, 30, 5), (96, 111, 34, 5), (150, 89, 34, 5)) + LEVEL_THREE.hazards[3:],
+        )
+        problems = validate_level(broken)
+        self.assertTrue(
+            any("clear floor" in problem for problem in problems),
+            f"the 34px spans were not rejected: {problems}",
+        )
 
 
 if __name__ == "__main__":

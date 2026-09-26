@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from src.player import PLAYER_WIDTH
 from src.settings import (
     FALLING_HAZARD_SPEED_MAX,
     FALLING_HAZARD_SPEED_MIN,
@@ -129,8 +130,8 @@ LEVEL_THREE = LevelDef(
     ),
     hazards=(
         (44, 155, 30, 5),
-        (96, 111, 34, 5),
-        (150, 89, 34, 5),
+        (92, 111, 24, 5),
+        (146, 89, 24, 5),
         (250, 45, 24, 5),
         (138, 104, 10, 56),
     ),
@@ -155,6 +156,26 @@ def level_at(index: int) -> LevelDef:
 
 def _supported_platforms(level: LevelDef) -> list[Rect4]:
     return [p for p in level.platforms if p[1] >= INTERNAL_HEIGHT - 40]
+
+
+def widest_clear_floor(platform: Rect4, hazards: tuple[Rect4, ...]) -> int:
+    px, py, pw, _ = platform
+    covered: list[tuple[int, int]] = []
+    for hx, hy, hw, hh in hazards:
+        if hy + hh != py:
+            continue
+        lo, hi = max(px, hx), min(px + pw, hx + hw)
+        if hi > lo:
+            covered.append((lo, hi))
+    gaps: list[int] = []
+    cursor = px
+    for lo, hi in sorted(covered):
+        if lo > cursor:
+            gaps.append(lo - cursor)
+        cursor = max(cursor, hi)
+    if cursor < px + pw:
+        gaps.append(px + pw - cursor)
+    return max(gaps) if gaps else pw
 
 
 def validate_level(level: LevelDef) -> list[str]:
@@ -215,6 +236,14 @@ def validate_level(level: LevelDef) -> list[str]:
             )
         else:
             reachable.append(rect)
+
+    for rect in level.platforms:
+        gap = widest_clear_floor(rect, level.hazards)
+        if gap < PLAYER_WIDTH:
+            problems.append(
+                f"{level.name}: platform {rect} leaves {gap}px of clear floor, "
+                f"but the player is {PLAYER_WIDTH}px wide and cannot stand there"
+            )
 
     return problems
 
