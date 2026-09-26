@@ -36,6 +36,23 @@ class MainShellTest(unittest.TestCase):
         self.session = Session(self.chamber)
         self.prologue = Prologue([["one"], ["two"]])
 
+    def test_boot_lands_on_the_main_menu(self):
+        recorded = []
+        original_render = main.render
+        with tempfile.TemporaryDirectory() as tmp:
+            main.Progress = lambda: Progress(Path(tmp) / "progress.json")
+            main.render = (
+                lambda canvas, chamber, session, state, *rest: recorded.append(state)
+            )
+            try:
+                pygame.event.post(pygame.event.Event(pygame.QUIT))
+                main.main()
+            finally:
+                main.render = original_render
+                del main.Progress
+        self.assertTrue(recorded)
+        self.assertIs(recorded[0], State.MENU)
+
     def test_every_state_maps_to_a_real_music_track(self):
         from src.audio import MUSIC_NAMES
 

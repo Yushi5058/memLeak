@@ -65,6 +65,22 @@ class ScreensTest(unittest.TestCase):
         labels = [item["label"] for item in self.screens.pause.items]
         self.assertEqual(labels, ["RESUME", "AUDIO SETTINGS", "EXIT TO MAIN MENU"])
 
+    def test_pause_exit_returns_to_the_main_menu_not_play(self):
+        self.assertIs(
+            self.open_pause_item(State.PAUSED, "EXIT TO MAIN MENU"), State.MENU
+        )
+
+    def test_settings_screen_adjusts_music_and_sound(self):
+        music_before = self.audio.music_volume
+        pick(self.screens.settings, "MUSIC")
+        self.press(State.SETTINGS, pygame.K_LEFT)
+        self.assertEqual(self.audio.music_volume, music_before - 1)
+
+        sound_before = self.audio.sfx_volume
+        pick(self.screens.settings, "SOUND")
+        self.press(State.SETTINGS, pygame.K_LEFT)
+        self.assertEqual(self.audio.sfx_volume, sound_before - 1)
+
     def test_start_opens_level_select(self):
         self.assertIs(self.open_main_item(State.MENU, "START"), State.LEVEL_SELECT)
 
