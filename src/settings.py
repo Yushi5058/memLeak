@@ -1,4 +1,5 @@
 # Screen settings
+DEBUG = False  # Opt-in per-frame physics trace on stdout
 INTERNAL_WIDTH = 320
 INTERNAL_HEIGHT = 180
 SCALE = 3

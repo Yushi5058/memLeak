@@ -1,6 +1,7 @@
 import pygame
 
 from src.settings import (
+    DEBUG,
     GRAVITY,
     INTERNAL_WIDTH,
     JUMP_STRENGTH,
@@ -32,6 +33,13 @@ class Player:
             self.on_ground = False
 
     def update(self, dt: float, platforms: list[pygame.Rect]):
+        if DEBUG:
+            print(
+                f"f={pygame.time.get_ticks():>6} dt={dt:.4f} "
+                f"vel_x={self.vel_x:7.2f} vel_y={self.vel_y:8.2f} "
+                f"on_ground={self.on_ground!s:5} pos=({self.rect.x:.3f},{self.rect.y:.3f})"
+            )
+
         # Apply Gravity
         self.vel_y += GRAVITY * dt
 

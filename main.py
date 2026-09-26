@@ -5,6 +5,7 @@ import pygame
 from src.player import Player
 from src.settings import (
     BG_COLOR,
+    DEBUG,
     FPS,
     GROUND_COLOR,
     HAZARD_COLOR,
@@ -57,8 +58,15 @@ game_over = False
 won = False
 
 running = True
+frame_no = 0
 while running:
     dt = clock.tick(FPS) / 1000.0
+    if DEBUG:
+        frame_no += 1
+        print(
+            f"FRAME {frame_no:>5} dt={dt:.4f} vel_y={player.vel_y:8.2f} "
+            f"on_ground={player.on_ground!s:5} rect.y={player.rect.y:.3f}"
+        )
 
     # 1. Events
     for event in pygame.event.get():
