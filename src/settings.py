@@ -6,6 +6,7 @@ SCALE = 3
 SCREEN_WIDTH = INTERNAL_WIDTH * SCALE  # 960
 SCREEN_HEIGHT = INTERNAL_HEIGHT * SCALE  # 540
 FPS = 60
+MAX_DT = 0.05  # Longest physics step; tunnelling observed at dt >= 0.2
 
 # Physics
 GRAVITY = 980.0  # pixels / second^2

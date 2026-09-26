@@ -1,201 +1,136 @@
-import sys
 from pathlib import Path
 
 import pygame
 
-from src.hazards import FallingHazard, next_interval, next_speed, spawn_x
-from src.player import Player
+from src.chamber import Chamber
+from src.session import Session
 from src.settings import (
     BG_COLOR,
     DEBUG,
-    DRAIN_RATE,
     FPS,
-    GROUND_COLOR,
     HAZARD_COLOR,
-    HAZARD_PENALTY,
     INTERNAL_HEIGHT,
     INTERNAL_WIDTH,
-    JUMP_COST,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
-    SPAWN_INTERVAL_MAX,
-    START_EARTH_YEARS,
-    STEP_COST,
     TARGET_COLOR,
     TEXT_COLOR,
 )
+from src.states import State
 
-pygame.init()
-pygame.font.init()
-window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("memLeak")
-
-canvas = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
-clock = pygame.time.Clock()
 FONT_PATH = Path(__file__).parent / "assets" / "fonts" / "Px437_IBM_EGA_8x8.ttf"
 # 8px is the 1:1 design size of the 8x8 font; other sizes break pixel crispness.
-font = (
-    pygame.font.Font(str(FONT_PATH), 8)
-    if FONT_PATH.is_file()
-    else pygame.font.SysFont("monospace", 8, bold=True)
-)
+FONT_SIZE = 8
 
-# Spawn point
-SPAWN_X, SPAWN_Y = 20.0, 130.0
-player = Player(SPAWN_X, SPAWN_Y)
+MOVE_KEYS = (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d)
 
-# --- World Objects (Rects) ---
-# Solid platforms: (x, y, width, height)
-platforms = [
-    pygame.Rect(0, 160, INTERNAL_WIDTH, 20),  # Main floor
-    pygame.Rect(60, 130, 50, 10),  # Low platform
-    pygame.Rect(140, 105, 50, 10),  # Mid platform
-    pygame.Rect(220, 80, 60, 10),  # High ledge
-]
 
-# Hazards: touch = time penalty + reset position
-hazards = [
-    pygame.Rect(120, 155, 30, 5),  # Floor spikes
-    pygame.Rect(195, 100, 10, 60),  # Vertical laser / barrier
-]
+def load_font() -> pygame.font.Font:
+    if FONT_PATH.is_file():
+        return pygame.font.Font(str(FONT_PATH), FONT_SIZE)
+    return pygame.font.SysFont("monospace", FONT_SIZE, bold=True)
 
-# Target portal (reach to clear the chapter)
-target = pygame.Rect(260, 60, 14, 20)
 
-# Game State
-earth_alloc = START_EARTH_YEARS
-game_over = False
-won = False
-elapsed = 0.0
-best_time = 0.0
-best_saved = 0.0
-falling: list[FallingHazard] = []
-spawn_timer = SPAWN_INTERVAL_MAX
+def handle_key(key: int, state: State, session: Session) -> State:
+    if state is State.PLAY:
+        if key in MOVE_KEYS:
+            session.press_step()
+        elif key == pygame.K_SPACE:
+            session.press_jump()
+        elif key == pygame.K_ESCAPE:
+            return State.PAUSED
+    elif state is State.PAUSED:
+        if key == pygame.K_ESCAPE:
+            return State.PLAY
+    elif state in (State.CLEARED, State.GAMEOVER):
+        if key == pygame.K_r:
+            session.reset()
+            return State.PLAY
+    return state
 
-running = True
-frame_no = 0
-while running:
-    dt = clock.tick(FPS) / 1000.0
-    if DEBUG:
-        frame_no += 1
-        print(
-            f"FRAME {frame_no:>5} dt={dt:.4f} vel_y={player.vel_y:8.2f} "
-            f"on_ground={player.on_ground!s:5} rect.y={player.rect.y:.3f}"
-        )
 
-    # 1. Events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            # Restart game
-            if event.key == pygame.K_r and (game_over or won):
-                earth_alloc = START_EARTH_YEARS
-                player = Player(SPAWN_X, SPAWN_Y)
-                game_over = False
-                won = False
-                elapsed = 0.0
-                falling.clear()
-                spawn_timer = SPAWN_INTERVAL_MAX
-            # Gameplay actions (only if still active)
-            elif not game_over and not won:
-                # Discrete move : left / right press
-                if event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
-                    earth_alloc -= STEP_COST
-                # Discrete move : Jump press (only costs if actually jumping off the ground)
-                if event.key == pygame.K_SPACE:
-                    if player.on_ground:
-                        player.jump()
-                        earth_alloc -= JUMP_COST
-                    # Check if that action depleted the remaining years
-                    if earth_alloc <= 0:
-                        earth_alloc = 0
-                        game_over = True
-    # 2. Per-frame simulation (must run every frame, not once per event)
-    if not game_over and not won:
-        elapsed += dt
-        earth_alloc = max(0.0, earth_alloc - DRAIN_RATE * dt)
-        if earth_alloc <= 0.0:
-            game_over = True
+def draw_centered(canvas, font, text, y, color) -> None:
+    msg = font.render(text, False, color)
+    canvas.blit(msg, (INTERNAL_WIDTH // 2 - msg.get_width() // 2, y))
 
-        player.handle_input(pygame.key.get_pressed())
-        player.update(dt, platforms)
 
-        spawn_timer -= dt
-        if spawn_timer <= 0.0:
-            spawn_timer = next_interval(elapsed)
-            falling.append(FallingHazard(spawn_x(player.rect.x), next_speed(elapsed)))
-        for hz in falling:
-            hz.update(dt)
-        falling = [hz for hz in falling if not hz.is_spent()]
-
-        # Check Hazard collisions
-        struck = False
-        for h in hazards:
-            if player.rect.colliderect(h):
-                struck = True
-                break
-        if not struck:
-            for i, hz in enumerate(falling):
-                if player.rect.colliderect(hz.rect):
-                    del falling[i]
-                    struck = True
-                    break
-        if struck:
-            earth_alloc -= HAZARD_PENALTY
-            # Respawn player at start of chamber
-            player = Player(SPAWN_X, SPAWN_Y)
-            if earth_alloc <= 0:
-                earth_alloc = 0
-                game_over = True
-
-        # Check Target collision
-        if player.rect.colliderect(target):
-            won = True
-            best_saved = max(best_saved, earth_alloc)
-            if best_time == 0.0 or elapsed < best_time:
-                best_time = elapsed
-
-    # 3. Render
+def render(canvas, chamber, session, state, font) -> None:
     canvas.fill(BG_COLOR)
+    chamber.draw(canvas, session.falling)
+    session.player.draw(canvas)
 
-    # Draw Platforms
-    for p in platforms:
-        pygame.draw.rect(canvas, GROUND_COLOR, p)
+    hud = font.render(
+        f"EARTH_ALLOC: {session.earth_alloc:06.1f} YRS  T:{session.elapsed:06.2f}s",
+        False,
+        TEXT_COLOR,
+    )
+    canvas.blit(hud, (4, 4))
 
-    # Draw Hazards
-    for h in hazards:
-        pygame.draw.rect(canvas, HAZARD_COLOR, h)
-    for hz in falling:
-        hz.draw(canvas)
-
-    # Draw Target Portal
-    pygame.draw.rect(canvas, TARGET_COLOR, target)
-
-    # Draw Player
-    player.draw(canvas)
-
-    # Draw Terminal HUD
-    hud_text = f"EARTH_ALLOC: {earth_alloc:06.1f} YRS  T:{elapsed:06.2f}s"
-    hud_surface = font.render(hud_text, False, TEXT_COLOR)
-    canvas.blit(hud_surface, (4, 4))
-
-    # Win / Loss overlays
-    if game_over:
-        msg = font.render("TIMELINE HALTED [R to retry]", False, HAZARD_COLOR)
-        canvas.blit(msg, (INTERNAL_WIDTH // 2 - msg.get_width() // 2, 70))
-    elif won:
-        msg = font.render(f"CLEARED IN {elapsed:.2f}s  SAVED {int(earth_alloc)} YRS", False, TARGET_COLOR)
-        canvas.blit(msg, (INTERNAL_WIDTH // 2 - msg.get_width() // 2, 70))
-        best = font.render(
-            f"BEST {best_time:.2f}s / {int(best_saved)} YRS  [R to retry]", False, TEXT_COLOR
+    if state is State.PAUSED:
+        draw_centered(canvas, font, "PAUSED [ESC to resume]", 70, TEXT_COLOR)
+    elif state is State.GAMEOVER:
+        draw_centered(canvas, font, "TIMELINE HALTED [R to retry]", 70, HAZARD_COLOR)
+    elif state is State.CLEARED:
+        draw_centered(
+            canvas,
+            font,
+            f"CLEARED IN {session.elapsed:.2f}s  SAVED {int(session.earth_alloc)} YRS",
+            70,
+            TARGET_COLOR,
         )
-        canvas.blit(best, (INTERNAL_WIDTH // 2 - best.get_width() // 2, 82))
+        draw_centered(
+            canvas,
+            font,
+            f"BEST {session.best_time:.2f}s / {int(session.best_saved)} YRS  [R to retry]",
+            82,
+            TEXT_COLOR,
+        )
 
-    # Scale to window
-    scaled = pygame.transform.scale(canvas, (SCREEN_WIDTH, SCREEN_HEIGHT))
-    window.blit(scaled, (0, 0))
-    pygame.display.flip()
 
-pygame.quit()
-sys.exit()
+def main() -> None:
+    pygame.init()
+    pygame.font.init()
+    window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("memLeak")
+    canvas = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
+    clock = pygame.time.Clock()
+    font = load_font()
+
+    chamber = Chamber()
+    session = Session(chamber)
+    state = State.PLAY
+    running = True
+    frame_no = 0
+
+    while running:
+        dt = clock.tick(FPS) / 1000.0
+        if DEBUG:
+            frame_no += 1
+            print(
+                f"FRAME {frame_no:>5} dt={dt:.4f} state={state.name} "
+                f"alloc={session.earth_alloc:8.2f} on_ground={session.player.on_ground!s:5} "
+                f"rect.y={session.player.rect.y:.3f}"
+            )
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                state = handle_key(event.key, state, session)
+
+        if state is State.PLAY:
+            session.step(dt, pygame.key.get_pressed())
+            if session.won:
+                state = State.CLEARED
+            elif session.game_over:
+                state = State.GAMEOVER
+
+        render(canvas, chamber, session, state, font)
+        window.blit(pygame.transform.scale(canvas, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
+        pygame.display.flip()
+
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()
