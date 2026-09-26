@@ -57,6 +57,9 @@ target = pygame.Rect(260, 60, 14, 20)
 earth_alloc = START_EARTH_YEARS
 game_over = False
 won = False
+elapsed = 0.0
+best_time = 0.0
+best_saved = 0.0
 
 running = True
 frame_no = 0
@@ -80,6 +83,7 @@ while running:
                 player = Player(SPAWN_X, SPAWN_Y)
                 game_over = False
                 won = False
+                elapsed = 0.0
             # Gameplay actions (only if still active)
             elif not game_over and not won:
                 # Discrete move : left / right press
@@ -96,6 +100,7 @@ while running:
                         game_over = True
     # 2. Per-frame simulation (must run every frame, not once per event)
     if not game_over and not won:
+        elapsed += dt
         earth_alloc = max(0.0, earth_alloc - DRAIN_RATE * dt)
         if earth_alloc <= 0.0:
             game_over = True
@@ -117,6 +122,9 @@ while running:
         # Check Target collision
         if player.rect.colliderect(target):
             won = True
+            best_saved = max(best_saved, earth_alloc)
+            if best_time == 0.0 or elapsed < best_time:
+                best_time = elapsed
 
     # 3. Render
     canvas.fill(BG_COLOR)
@@ -136,7 +144,7 @@ while running:
     player.draw(canvas)
 
     # Draw Terminal HUD
-    hud_text = f"EARTH_ALLOC: {earth_alloc:06.1f} YRS"
+    hud_text = f"EARTH_ALLOC: {earth_alloc:06.1f} YRS  T:{elapsed:06.2f}s"
     hud_surface = font.render(hud_text, False, TEXT_COLOR)
     canvas.blit(hud_surface, (4, 4))
 
@@ -145,10 +153,12 @@ while running:
         msg = font.render("KERNEL PANIC: TIMELINE HALTED [R to retry]", False, HAZARD_COLOR)
         canvas.blit(msg, (INTERNAL_WIDTH // 2 - msg.get_width() // 2, 70))
     elif won:
-        msg = font.render(
-            f"CHAMBER DEALLOCATED! SAVED: {int(earth_alloc)} YRS [R]", False, TARGET_COLOR
-        )
+        msg = font.render(f"CLEARED IN {elapsed:.2f}s  SAVED {int(earth_alloc)} YRS", False, TARGET_COLOR)
         canvas.blit(msg, (INTERNAL_WIDTH // 2 - msg.get_width() // 2, 70))
+        best = font.render(
+            f"BEST {best_time:.2f}s / {int(best_saved)} YRS  [R to retry]", False, TEXT_COLOR
+        )
+        canvas.blit(best, (INTERNAL_WIDTH // 2 - best.get_width() // 2, 82))
 
     # Scale to window
     scaled = pygame.transform.scale(canvas, (SCREEN_WIDTH, SCREEN_HEIGHT))
