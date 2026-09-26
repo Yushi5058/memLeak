@@ -1,5 +1,5 @@
 
-from src.achievements import ACHIEVEMENTS
+from src.achievements import visible_achievements
 from src.levels import LEVELS
 from src.menu import BACK_KEYS, CONFIRM_KEYS, LEFT_KEYS, RIGHT_KEYS, Menu
 from src.settings import (
@@ -189,16 +189,15 @@ class Screens:
 
     def _draw_achievements(self, canvas, font, small_font) -> None:
         progress = self.flow.progress
-        earned = sum(
-            1 for a in ACHIEVEMENTS if progress.has_achievement(a.key)
-        )
+        visible = visible_achievements(progress.achievements)
+        earned = sum(1 for a in visible if progress.has_achievement(a.key))
         title = font.render(
-            f"ACHIEVEMENTS  {earned}/{len(ACHIEVEMENTS)}", False, TARGET_COLOR
+            f"ACHIEVEMENTS  {earned}/{len(visible)}", False, TARGET_COLOR
         )
         self._centered(canvas, title, 22)
 
         rows = []
-        for achievement in ACHIEVEMENTS:
+        for achievement in visible:
             unlocked = progress.has_achievement(achievement.key)
             mark = "*" if unlocked else " "
             color = TEXT_COLOR if unlocked else DIM_COLOR

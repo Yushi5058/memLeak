@@ -43,6 +43,7 @@ class Progress:
         self.path = Path(path) if path is not None else DEFAULT_PATH
         self.unlocked = 1
         self.cleared: list[int] = []
+        self.clean_clears: list[int] = []
         self.best_time: dict[int, float] = {}
         self.best_years: dict[int, float] = {}
         self.achievements: list[str] = []
@@ -66,6 +67,13 @@ class Progress:
             self.cleared = [i for i in (_as_int(v, -1) for v in cleared) if i >= 0]
         else:
             self.cleared = []
+        clean_clears = raw.get("clean_clears", [])
+        if isinstance(clean_clears, list):
+            self.clean_clears = [
+                i for i in (_as_int(v, -1) for v in clean_clears) if i >= 0
+            ]
+        else:
+            self.clean_clears = []
         self.best_time = _int_keyed_floats(raw.get("best_time"))
         self.best_years = _int_keyed_floats(raw.get("best_years"))
         achievements = raw.get("achievements", [])
@@ -88,6 +96,7 @@ class Progress:
             "version": SAVE_VERSION,
             "unlocked": self.unlocked,
             "cleared": sorted(set(self.cleared)),
+            "clean_clears": sorted(set(self.clean_clears)),
             "best_time": {str(k): v for k, v in self.best_time.items()},
             "best_years": {str(k): v for k, v in self.best_years.items()},
             "achievements": sorted(set(self.achievements)),
@@ -123,6 +132,16 @@ class Progress:
 
     def best_for(self, index: int) -> tuple[float, float]:
         return self.best_time.get(index, 0.0), self.best_years.get(index, 0.0)
+
+    def record_clean_clear(self, index: int) -> bool:
+        if index in self.clean_clears:
+            return False
+        self.clean_clears.append(index)
+        self.save()
+        return True
+
+    def clean_clear_count(self) -> int:
+        return len(set(self.clean_clears))
 
     def has_seen_chapter(self, index: int) -> bool:
         return index in self.seen_chapters

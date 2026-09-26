@@ -75,6 +75,18 @@ class ProgressTest(unittest.TestCase):
         self.assertEqual(progress.cleared, [0])
         self.assertEqual(json.loads(self.path.read_text())["cleared"], [0])
 
+    def test_clean_clears_are_recorded_once_and_survive_a_reload(self):
+        progress = self.fresh()
+        self.assertTrue(progress.record_clean_clear(0))
+        self.assertFalse(progress.record_clean_clear(0))
+        self.assertEqual(progress.clean_clear_count(), 1)
+        self.assertEqual(self.fresh().clean_clear_count(), 1)
+
+    def test_corrupt_clean_clears_fall_back_to_empty(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(json.dumps({"clean_clears": "not a list"}))
+        self.assertEqual(self.fresh().clean_clears, [])
+
     def test_corrupt_save_falls_back_to_defaults(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text("{not json at all")
@@ -193,6 +205,31 @@ class FlowTest(unittest.TestCase):
         self.flow.record_win()
         self.assertTrue(Progress(self.path).has_cleared(0))
         self.assertTrue(Progress(self.path).is_unlocked(1))
+
+    def test_razor_edge_is_awarded_on_a_thin_finish(self):
+        self.flow.session.earth_alloc = 10.0
+        self.flow.record_win()
+        self.assertTrue(Progress(self.path).has_achievement("razor_edge"))
+
+    def test_razor_edge_is_withheld_on_a_comfortable_finish(self):
+        self.flow.session.earth_alloc = 400.0
+        self.flow.record_win()
+        self.assertFalse(Progress(self.path).has_achievement("razor_edge"))
+
+    def test_untouched_waits_until_every_chamber_is_cleared_clean(self):
+        for index in range(self.flow.level_count - 1):
+            self.flow.start(index)
+            self.flow.record_win()
+            self.assertFalse(Progress(self.path).has_achievement("untouched"))
+        self.flow.start(self.flow.level_count - 1)
+        self.flow.record_win()
+        self.assertTrue(Progress(self.path).has_achievement("untouched"))
+
+    def test_a_hit_disqualifies_the_untouched_sweep(self):
+        self.flow.session.hits = 1
+        self.flow.record_win()
+        self.assertEqual(Progress(self.path).clean_clear_count(), 0)
+        self.assertFalse(Progress(self.path).has_achievement("untouched"))
 
     def test_level_count_matches_the_catalogue(self):
         self.assertEqual(self.flow.level_count, len(LEVELS))

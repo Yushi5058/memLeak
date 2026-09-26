@@ -77,6 +77,10 @@ Five, awarded the moment you clear a chamber:
 | `deep_pocket` | Bank at least 500 years |
 | `completionist` | Clear all three chambers |
 
+There are also secret achievements. They are not listed here and do not
+appear on the achievements screen until you earn them, so the total in the
+header only counts what you can already see. Find them by playing.
+
 ## Sprites
 
 The game ships with rectangle placeholders and needs no art to run. Drop
@@ -132,7 +136,7 @@ so pixels stay square.
 ## Development
 
 ```sh
-python -m unittest discover -s tests -t .   # 252 tests
+python -m unittest discover -s tests -t .   # 259 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music

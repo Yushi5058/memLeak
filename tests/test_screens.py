@@ -10,7 +10,7 @@ import pygame
 
 import src.screens as screens_module
 from main import FONT_PATH, FONT_SIZE, SMALL_FONT_PATH, SMALL_FONT_SIZE
-from src.achievements import ACHIEVEMENTS, Achievement
+from src.achievements import ACHIEVEMENTS, Achievement, visible_achievements
 from src.audio import VOLUME_STEPS, Audio
 from src.flow import Flow
 from src.levels import LEVELS
@@ -332,10 +332,11 @@ class ScreensTest(unittest.TestCase):
         self.assertIn(LOCKED_TILE_COLOR, painted)
 
     def test_every_row_gets_a_tile(self):
+        visible = visible_achievements(self.progress.achievements)
         spy = SurfaceSpy(self.canvas)
         self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
         tiles = [rect for _, rect in spy.fills if rect is not None]
-        self.assertEqual(len(tiles), len(ACHIEVEMENTS))
+        self.assertEqual(len(tiles), len(visible))
         for rect in tiles:
             self.assertGreaterEqual(rect[0], 0)
             self.assertLessEqual(rect[0] + rect[2], self.canvas.get_width())
@@ -356,23 +357,45 @@ class ScreensTest(unittest.TestCase):
 
     def test_a_locked_row_still_shows_its_name_and_its_goal(self):
         self.progress.achievements = []
+        visible = visible_achievements(self.progress.achievements)
         spy = SurfaceSpy(self.canvas)
         self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
         self.assertTrue(spy.blits)
-        self.assertEqual(len(spy.blits), len(ACHIEVEMENTS) * 2 + 2)
+        self.assertEqual(len(spy.blits), len(visible) * 2 + 2)
+
+    def test_unearned_secrets_are_hidden_and_earned_secrets_appear(self):
+        hidden = [a for a in ACHIEVEMENTS if a.secret]
+        self.assertTrue(hidden)
+        self.progress.achievements = []
+        spy = SurfaceSpy(self.canvas)
+        self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
+        tiles_locked = [r for _, r in spy.fills if r]
+        visible_locked = visible_achievements(self.progress.achievements)
+        self.assertEqual(len(tiles_locked), len(visible_locked))
+        self.assertNotIn("razor_edge", self.progress.achievements)
+
+        for secret in hidden:
+            self.progress.achievements = [secret.key]
+            earned_spy = SurfaceSpy(self.canvas)
+            self.screens.draw(
+                earned_spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font
+            )
+            tiles_earned = [r for _, r in earned_spy.fills if r]
+            self.assertEqual(len(tiles_earned), len(visible_locked) + 1)
 
     def test_everything_still_fits_once_secrets_are_added(self):
+        self.progress.achievements = [a.key for a in ACHIEVEMENTS]
         extra = (
             Achievement("secret_one", "SECRET ONE", "A deliberately long goal line"),
             Achievement("secret_two", "SECRET TWO", "Another long goal line here"),
         )
-        original = screens_module.ACHIEVEMENTS
-        screens_module.ACHIEVEMENTS = ACHIEVEMENTS + extra
+        original = screens_module.visible_achievements
+        screens_module.visible_achievements = lambda earned: ACHIEVEMENTS + extra
         try:
             spy = SurfaceSpy(self.canvas)
             self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
         finally:
-            screens_module.ACHIEVEMENTS = original
+            screens_module.visible_achievements = original
         for surface_width, x in spy.blits:
             self.assertGreaterEqual(x, 0)
             self.assertLessEqual(x + surface_width, self.canvas.get_width())

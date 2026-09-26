@@ -55,6 +55,8 @@ class Flow:
         self.progress.record_clear(
             self.level_index, session.elapsed, session.earth_alloc
         )
+        if session.hits == 0:
+            self.progress.record_clean_clear(self.level_index)
         for key in earned_on_clear(
             level,
             session.elapsed,
@@ -62,6 +64,7 @@ class Flow:
             session.hits,
             already_cleared,
             len(self.progress.cleared),
+            self.progress.clean_clear_count(),
         ):
             if self.progress.unlock_achievement(key):
                 self.unlocked_awards.append(key)
