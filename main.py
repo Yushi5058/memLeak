@@ -3,8 +3,9 @@ from pathlib import Path
 import pygame
 
 from src.audio import Audio
-from src.chamber import Chamber
+from src.flow import Flow
 from src.overlay import CrtOverlay
+from src.progression import Progress
 from src.prologue import Prologue
 from src.session import Session
 from src.settings import (
@@ -41,7 +42,13 @@ def load_font() -> pygame.font.Font:
     return pygame.font.SysFont("monospace", FONT_SIZE, bold=True)
 
 
-def handle_key(key: int, state: State, session: Session, prologue: Prologue) -> State:
+def handle_key(
+    key: int,
+    state: State,
+    session: Session,
+    prologue: Prologue,
+    flow: Flow | None = None,
+) -> State:
     if state is State.TITLE:
         if key in CONFIRM_KEYS:
             return State.PROLOGUE
@@ -63,8 +70,18 @@ def handle_key(key: int, state: State, session: Session, prologue: Prologue) -> 
             return State.PLAY
     elif state in (State.CLEARED, State.GAMEOVER):
         if key == pygame.K_r:
-            session.reset()
+            if flow is not None:
+                flow.restart()
+            else:
+                session.reset()
             return State.PLAY
+        if key in CONFIRM_KEYS:
+            if state is State.CLEARED and flow is not None:
+                if flow.advance():
+                    return State.PLAY
+            elif flow is None:
+                session.reset()
+                return State.PLAY
     return state
 
 
@@ -81,7 +98,7 @@ def draw_title(canvas, font) -> None:
         draw_centered(canvas, font, TITLE_PROMPT, 108, TEXT_COLOR)
 
 
-def render_world(canvas, chamber, session, state, font, sprites=None) -> None:
+def render_world(canvas, chamber, session, state, font, sprites=None, flow=None) -> None:
     chamber.draw(canvas, session.falling, sprites)
     session.player.draw(canvas, sprites)
 
@@ -91,6 +108,7 @@ def render_world(canvas, chamber, session, state, font, sprites=None) -> None:
         TEXT_COLOR,
     )
     canvas.blit(hud, (4, 4))
+    canvas.blit(font.render(chamber.level.name, False, TARGET_COLOR), (4, 13))
 
     if state is State.PAUSED:
         draw_centered(canvas, font, "PAUSED [ESC to resume]", 70, TEXT_COLOR)
@@ -104,23 +122,36 @@ def render_world(canvas, chamber, session, state, font, sprites=None) -> None:
             70,
             TARGET_COLOR,
         )
+        best_time, best_years = (
+            flow.progress.best_for(flow.level_index) if flow else (0.0, 0.0)
+        )
         draw_centered(
             canvas,
             font,
-            f"BEST {session.best_time:.2f}s / {int(session.best_saved)} YRS  [R to retry]",
+            f"BEST {best_time:.2f}s / {int(best_years)} YRS",
             82,
+            TEXT_COLOR,
+        )
+        has_next = flow is not None and flow.level_index + 1 < flow.level_count
+        draw_centered(
+            canvas,
+            font,
+            "[ENTER] NEXT CHAMBER   [R] REPLAY" if has_next else "ALL CHAMBERS CLEARED",
+            96,
             TEXT_COLOR,
         )
 
 
-def render(canvas, chamber, session, state, font, prologue, sprites=None) -> None:
+def render(
+    canvas, chamber, session, state, font, prologue, sprites=None, flow=None
+) -> None:
     canvas.fill(BG_COLOR)
     if state is State.TITLE:
         draw_title(canvas, font)
     elif state is State.PROLOGUE:
         prologue.draw(canvas, font)
     else:
-        render_world(canvas, chamber, session, state, font, sprites)
+        render_world(canvas, chamber, session, state, font, sprites, flow)
 
 
 def main() -> None:
@@ -132,8 +163,7 @@ def main() -> None:
     clock = pygame.time.Clock()
     font = load_font()
 
-    chamber = Chamber()
-    session = Session(chamber)
+    flow = Flow(Progress())
     prologue = Prologue.from_file()
     audio = Audio()
     sprites = Sprites()
@@ -148,29 +178,40 @@ def main() -> None:
             frame_no += 1
             print(
                 f"FRAME {frame_no:>5} dt={dt:.4f} state={state.name} "
-                f"alloc={session.earth_alloc:8.2f} on_ground={session.player.on_ground!s:5} "
-                f"rect.y={session.player.rect.y:.3f}"
+                f"alloc={flow.session.earth_alloc:8.2f} "
+                f"on_ground={flow.session.player.on_ground!s:5} "
+                f"rect.y={flow.session.player.rect.y:.3f}"
             )
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
-                state = handle_key(event.key, state, session, prologue)
+                state = handle_key(event.key, state, flow.session, prologue, flow)
 
         if state is State.PROLOGUE:
             prologue.update(dt)
         elif state is State.PLAY:
-            session.step(dt, pygame.key.get_pressed())
-            if session.won:
+            flow.session.step(dt, pygame.key.get_pressed())
+            if flow.session.won:
+                flow.record_win()
                 state = State.CLEARED
-            elif session.game_over:
+            elif flow.session.game_over:
                 state = State.GAMEOVER
 
-        for cue in session.drain_events():
+        for cue in flow.session.drain_events():
             audio.play(cue)
 
-        render(canvas, chamber, session, state, font, prologue, sprites)
+        render(
+            canvas,
+            flow.chamber,
+            flow.session,
+            state,
+            font,
+            prologue,
+            sprites,
+            flow,
+        )
         overlay.draw(canvas)
         window.blit(pygame.transform.scale(canvas, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
         pygame.display.flip()

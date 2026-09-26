@@ -2,12 +2,9 @@ from src.chamber import Chamber
 from src.hazards import FallingHazard, next_interval, next_speed, spawn_x
 from src.player import Player
 from src.settings import (
-    DRAIN_RATE,
     HAZARD_PENALTY,
     JUMP_COST,
     MAX_DT,
-    SPAWN_INTERVAL_MAX,
-    START_EARTH_YEARS,
     STEP_COST,
 )
 
@@ -18,23 +15,24 @@ class Session:
         self.player = Player(*chamber.spawn_point)
         self.falling: list[FallingHazard] = []
         self.events: list[str] = []
-        self.earth_alloc = START_EARTH_YEARS
+        self.earth_alloc = self.chamber.start_years
         self.elapsed = 0.0
         self.best_time = 0.0
         self.best_saved = 0.0
         self.game_over = False
         self.won = False
-        self.spawn_timer = SPAWN_INTERVAL_MAX
+        self.spawn_timer = self.chamber.spawn_profile.interval_max
 
     def reset(self) -> None:
+        self.chamber.reset()
         self.player = Player(*self.chamber.spawn_point)
         self.falling.clear()
         self.events.clear()
-        self.earth_alloc = START_EARTH_YEARS
+        self.earth_alloc = self.chamber.start_years
         self.elapsed = 0.0
         self.game_over = False
         self.won = False
-        self.spawn_timer = SPAWN_INTERVAL_MAX
+        self.spawn_timer = self.chamber.spawn_profile.interval_max
 
     def press_jump(self) -> bool:
         if not self.player.on_ground:
@@ -68,7 +66,7 @@ class Session:
             return
 
         self.elapsed += dt
-        self.earth_alloc = max(0.0, self.earth_alloc - DRAIN_RATE * dt)
+        self.earth_alloc = max(0.0, self.earth_alloc - self.chamber.drain_rate * dt)
         if self.earth_alloc <= 0.0:
             self.game_over = True
 
@@ -78,11 +76,15 @@ class Session:
         if was_airborne and self.player.on_ground:
             self.events.append("land")
 
+        self.chamber.update(dt)
         self.spawn_timer -= dt
         if self.spawn_timer <= 0.0:
-            self.spawn_timer = next_interval(self.elapsed)
+            profile = self.chamber.spawn_profile
+            self.spawn_timer = next_interval(self.elapsed, profile)
             self.falling.append(
-                FallingHazard(spawn_x(self.player.rect.x), next_speed(self.elapsed))
+                FallingHazard(
+                    spawn_x(self.player.rect.x), next_speed(self.elapsed, profile)
+                )
             )
         for hz in self.falling:
             hz.update(dt)

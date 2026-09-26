@@ -3,29 +3,41 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from src.settings import GROUND_COLOR, HAZARD_COLOR, INTERNAL_WIDTH, TARGET_COLOR
+from src.hazards import MoverHazard
+from src.levels import LEVEL_ONE, LevelDef
+from src.settings import GROUND_COLOR, HAZARD_COLOR, TARGET_COLOR
 
 if TYPE_CHECKING:
     from src.hazards import FallingHazard
 
 
 class Chamber:
-    def __init__(self) -> None:
-        self.platforms = [
-            pygame.Rect(0, 160, INTERNAL_WIDTH, 20),
-            pygame.Rect(60, 130, 50, 10),
-            pygame.Rect(140, 105, 50, 10),
-            pygame.Rect(220, 80, 60, 10),
+    def __init__(self, level: LevelDef | None = None) -> None:
+        self.level = level if level is not None else LEVEL_ONE
+        self.platforms = [pygame.Rect(*r) for r in self.level.platforms]
+        self.hazards = [pygame.Rect(*r) for r in self.level.hazards]
+        self.movers = [
+            MoverHazard(m.rect, m.speed, m.x_min, m.x_max) for m in self.level.movers
         ]
-        self.hazards = [
-            pygame.Rect(120, 155, 30, 5),
-            pygame.Rect(195, 100, 10, 60),
+        self.target = pygame.Rect(*self.level.target)
+        self.spawn_point = self.level.spawn_point
+        self.spawn_profile = self.level.spawn
+        self.drain_rate = self.level.drain_rate
+        self.start_years = self.level.start_years
+
+    def reset(self) -> None:
+        self.movers = [
+            MoverHazard(m.rect, m.speed, m.x_min, m.x_max) for m in self.level.movers
         ]
-        self.target = pygame.Rect(260, 60, 14, 20)
-        self.spawn_point = (20.0, 130.0)
+
+    def update(self, dt: float) -> None:
+        for mover in self.movers:
+            mover.update(dt)
 
     def hits_hazard(self, rect: pygame.FRect) -> bool:
-        return any(rect.colliderect(h) for h in self.hazards)
+        if any(rect.colliderect(h) for h in self.hazards):
+            return True
+        return any(rect.colliderect(m.rect) for m in self.movers)
 
     def reached_target(self, rect: pygame.FRect) -> bool:
         return rect.colliderect(self.target)
@@ -43,6 +55,8 @@ class Chamber:
                 sprites.draw_tiled(surface, "tile_hazard", h, HAZARD_COLOR)
             else:
                 pygame.draw.rect(surface, HAZARD_COLOR, h)
+        for mover in self.movers:
+            mover.draw(surface, sprites)
         for hz in falling:
             hz.draw(surface, sprites)
         if sprites is not None:
