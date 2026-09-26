@@ -11,12 +11,9 @@ from src.hazards import FallingHazard
 from src.player import PLAYER_HEIGHT
 from src.session import Session
 from src.settings import (
-    DRAIN_RATE,
-    HAZARD_PENALTY,
     INTERNAL_WIDTH,
     JUMP_COST,
     MAX_DT,
-    START_EARTH_YEARS,
     STEP_COST,
 )
 
@@ -51,7 +48,8 @@ class SessionTest(unittest.TestCase):
     def test_starts_at_spawn_point_with_full_allocation(self):
         self.assertEqual(self.session.player.rect.x, self.spawn[0])
         self.assertEqual(self.session.player.rect.y, self.spawn[1])
-        self.assertEqual(self.session.earth_alloc, START_EARTH_YEARS)
+        self.assertEqual(self.session.earth_alloc, self.session.chamber.start_years)
+        self.assertEqual(self.session.hearts, 3.0)
         self.assertEqual(self.session.elapsed, 0.0)
         self.assertFalse(self.session.game_over)
         self.assertFalse(self.session.won)
@@ -75,7 +73,9 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(self.session.elapsed, 0.0)
 
     def test_drain_eventually_triggers_game_over(self):
-        needed = int(START_EARTH_YEARS / (DRAIN_RATE * MAX_DT)) + 10
+        needed = (
+            int(self.session.chamber.start_years / (self.session.chamber.drain_rate * MAX_DT)) + 10
+        )
         for _ in range(needed):
             self.session.step(MAX_DT, NO_KEYS)
         self.assertTrue(self.session.game_over)
@@ -104,9 +104,11 @@ class SessionTest(unittest.TestCase):
     def test_static_hazard_strike_applies_penalty_and_respawns(self):
         self.settle()
         self.session.player.rect.topleft = (125.0, 150.0)
-        before = self.session.earth_alloc
+        before_alloc = self.session.earth_alloc
         self.session.step(0.0, NO_KEYS)
-        self.assertAlmostEqual(self.session.earth_alloc, before - HAZARD_PENALTY)
+        self.assertEqual(self.session.hearts, 2.0)
+        self.assertAlmostEqual(self.session.earth_alloc, before_alloc)
+        self.assertEqual(self.session.hits, 1)
         self.assertEqual(self.session.player.rect.x, self.spawn[0])
         self.assertEqual(self.session.player.rect.y, self.spawn[1])
 
@@ -114,9 +116,10 @@ class SessionTest(unittest.TestCase):
         self.settle()
         self.session.player.rect.topleft = (200.0, 50.0)
         self.session.falling.append(falling_at(200.0, 50.0))
-        before = self.session.earth_alloc
+        before_alloc = self.session.earth_alloc
         self.session.step(0.0, NO_KEYS)
-        self.assertAlmostEqual(self.session.earth_alloc, before - HAZARD_PENALTY)
+        self.assertEqual(self.session.hearts, 2.5)
+        self.assertAlmostEqual(self.session.earth_alloc, before_alloc)
         self.assertEqual(self.session.falling, [])
         self.assertEqual(self.session.player.rect.x, self.spawn[0])
 
@@ -126,8 +129,14 @@ class SessionTest(unittest.TestCase):
         overlapping = falling_at(125.0, 150.0)
         self.session.falling.append(overlapping)
         self.session.step(0.0, NO_KEYS)
-        self.assertIn(overlapping, self.session.falling)
+        self.assertEqual(self.session.hearts, 2.0)
         self.assertEqual(self.session.player.rect.x, self.spawn[0])
+
+    def test_losing_all_hearts_triggers_game_over(self):
+        self.settle()
+        self.session.take_damage(3.0)
+        self.assertEqual(self.session.hearts, 0.0)
+        self.assertTrue(self.session.game_over)
 
     def test_reaching_target_wins_and_records_best(self):
         self.settle()
@@ -157,7 +166,8 @@ class SessionTest(unittest.TestCase):
 
         self.session.reset()
 
-        self.assertEqual(self.session.earth_alloc, START_EARTH_YEARS)
+        self.assertEqual(self.session.earth_alloc, self.session.chamber.start_years)
+        self.assertEqual(self.session.hearts, 3.0)
         self.assertEqual(self.session.elapsed, 0.0)
         self.assertEqual(self.session.falling, [])
         self.assertFalse(self.session.game_over)
@@ -173,7 +183,6 @@ class SessionTest(unittest.TestCase):
         self.session.falling[0].rect.y = 400.0
         self.session.step(0.0, NO_KEYS)
         self.assertFalse(any(h.is_spent() for h in self.session.falling))
-
 
     def test_jump_emits_jump_event(self):
         self.settle()

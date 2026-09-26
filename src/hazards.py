@@ -47,11 +47,12 @@ def spawn_x(avoid_x: float) -> float:
 
 
 class FallingHazard:
-    def __init__(self, x: float, speed: float):
+    def __init__(self, x: float, speed: float) -> None:
         self.rect = pygame.FRect(
             x, -float(FALLING_HAZARD_HEIGHT), FALLING_HAZARD_WIDTH, FALLING_HAZARD_HEIGHT
         )
         self.vel_y = speed
+        self.damage = 0.5  # Meteorite costs 0.5 heart
 
     def update(self, dt: float) -> None:
         self.rect.y += self.vel_y * dt
@@ -67,12 +68,22 @@ class FallingHazard:
 
 
 class MoverHazard:
-    def __init__(self, rect, speed: float, x_min: float, x_max: float) -> None:
+    def __init__(
+        self,
+        rect,
+        speed: float,
+        x_min: float,
+        x_max: float,
+        sprite_name: str = "hazard_moving",
+        damage: float = 1.0,
+    ) -> None:
         self.rect = pygame.FRect(*rect)
         self.speed = speed
         self.x_min = x_min
         self.x_max = x_max
         self.direction = 1.0
+        self.sprite_name = sprite_name
+        self.damage = damage  # Costs 1.0 heart
 
     def update(self, dt: float) -> None:
         width = self.rect.width
@@ -86,6 +97,18 @@ class MoverHazard:
 
     def draw(self, surface: pygame.Surface, sprites=None) -> None:
         if sprites is not None:
-            sprites.draw_sprite(surface, "hazard_falling", self.rect, HAZARD_COLOR)
+            sprites.draw_sprite(surface, self.sprite_name, self.rect, HAZARD_COLOR)
         else:
             pygame.draw.rect(surface, HAZARD_COLOR, self.rect)
+
+
+class BlackHoleHazard(MoverHazard):
+    def __init__(self, rect, speed: float, x_min: float, x_max: float) -> None:
+        super().__init__(
+            rect=rect,
+            speed=speed,
+            x_min=x_min,
+            x_max=x_max,
+            sprite_name="hazard_blackhole",
+            damage=1.0,
+        )

@@ -11,14 +11,18 @@ class Achievement:
     secret: bool = False
 
 
-DEEP_POCKET_YEARS = 500.0
+DEEP_POCKET_YEARS = 300.0
 RAZOR_EDGE_YEARS = 25.0
 
 ACHIEVEMENTS = (
     Achievement("first_steps", "FIRST STEPS", "Clear OUTER HULL"),
     Achievement("clean_run", "CLEAN RUN", "Clear a chamber with no hits"),
     Achievement("speedster", "SPEEDSTER", "Clear a chamber under par time"),
-    Achievement("deep_pocket", "DEEP POCKET", "Bank 500 years in one run"),
+    Achievement(
+        "deep_pocket",
+        "DEEP POCKET",
+        f"Bank {DEEP_POCKET_YEARS:.0f} years in one run",
+    ),
     Achievement("completionist", "COMPLETIONIST", "Clear all three chambers"),
     Achievement(
         "razor_edge",
@@ -42,9 +46,7 @@ def visible_achievements(earned) -> tuple:
     Keeps unearned secrets out of the list entirely, so neither their rows nor
     the total in the header reveal that they exist.
     """
-    return tuple(
-        a for a in ACHIEVEMENTS if not a.secret or a.key in earned
-    )
+    return tuple(a for a in ACHIEVEMENTS if not a.secret or a.key in earned)
 
 
 def earned_on_clear(

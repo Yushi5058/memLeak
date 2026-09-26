@@ -9,9 +9,7 @@ from src.settings import (
     TARGET_COLOR,
 )
 
-DEFAULT_SPRITES_DIR = (
-    Path(__file__).resolve().parent.parent / "assets" / "sprites"
-)
+DEFAULT_SPRITES_DIR = Path(__file__).resolve().parent.parent / "assets" / "sprites"
 SPRITE_NAMES = ("player", "hazard_falling", "portal")
 TILE_NAMES = ("tile_platform", "tile_hazard")
 
@@ -22,8 +20,7 @@ HITBOX_SIZES = {
     "portal": (14, 20),
 }
 ART_SIZES = {
-    name: (width * ART_SCALE, height * ART_SCALE)
-    for name, (width, height) in HITBOX_SIZES.items()
+    name: (width * ART_SCALE, height * ART_SCALE) for name, (width, height) in HITBOX_SIZES.items()
 }
 TILE_SIZES = {"tile_platform": (16, 16), "tile_hazard": (8, 8)}
 

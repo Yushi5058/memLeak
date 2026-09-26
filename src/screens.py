@@ -1,4 +1,3 @@
-
 from src.achievements import visible_achievements
 from src.levels import LEVELS
 from src.menu import BACK_KEYS, CONFIRM_KEYS, LEFT_KEYS, RIGHT_KEYS, Menu
@@ -181,6 +180,7 @@ class Screens:
         return State.SETTINGS
 
     def draw(self, canvas, font, state: State, small_font=None) -> None:
+        active_small_font = small_font or font
         if state is State.MENU:
             self.main.draw(canvas, font, y=44)
             if self.flow.all_cleared:
@@ -189,6 +189,8 @@ class Screens:
                     font.render("ALL CHAMBERS CLEARED", False, DIM_COLOR),
                     124,
                 )
+            watermark = active_small_font.render("DEV: YUSHI_61", False, DIM_COLOR)
+            canvas.blit(watermark, (4, canvas.get_height() - watermark.get_height() - 4))
             self._hint(canvas, font, "ARROWS MOVE   ENTER SELECT")
         elif state is State.LEVEL_SELECT:
             self.levels.draw(canvas, font, y=40)
@@ -200,15 +202,13 @@ class Screens:
             self.settings.draw(canvas, font, y=40)
             self._hint(canvas, font, "LEFT/RIGHT ADJUST   ESC BACK")
         elif state is State.ACHIEVEMENTS:
-            self._draw_achievements(canvas, font, small_font or font)
+            self._draw_achievements(canvas, font, active_small_font)
 
     def _draw_achievements(self, canvas, font, small_font) -> None:
         progress = self.flow.progress
         visible = visible_achievements(progress.achievements)
         earned = sum(1 for a in visible if progress.has_achievement(a.key))
-        title = font.render(
-            f"ACHIEVEMENTS  {earned}/{len(visible)}", False, TARGET_COLOR
-        )
+        title = font.render(f"ACHIEVEMENTS  {earned}/{len(visible)}", False, TARGET_COLOR)
         self._centered(canvas, title, 22)
 
         rows = []
@@ -220,9 +220,7 @@ class Screens:
                 (
                     unlocked,
                     _trim_to_ink(font.render(f"{mark} {achievement.label}", False, color)),
-                    _trim_to_ink(
-                        small_font.render(achievement.hint, False, DIM_COLOR)
-                    ),
+                    _trim_to_ink(small_font.render(achievement.hint, False, DIM_COLOR)),
                 )
             )
 
@@ -232,10 +230,7 @@ class Screens:
         pad = 6
         tile_w = label_w + gap + hint_w + pad * 2
         tile_x = (canvas.get_width() - tile_w) // 2
-        row_h = (
-            max(max(r[1].get_height() for r in rows), max(r[2].get_height() for r in rows))
-            + 4
-        )
+        row_h = max(max(r[1].get_height() for r in rows), max(r[2].get_height() for r in rows)) + 4
         pitch = row_h + 3
         y = 40
         for unlocked, label, hint in rows:

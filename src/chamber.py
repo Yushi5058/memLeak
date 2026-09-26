@@ -17,7 +17,15 @@ class Chamber:
         self.platforms = [pygame.Rect(*r) for r in self.level.platforms]
         self.hazards = [pygame.Rect(*r) for r in self.level.hazards]
         self.movers = [
-            MoverHazard(m.rect, m.speed, m.x_min, m.x_max) for m in self.level.movers
+            MoverHazard(
+                m.rect,
+                m.speed,
+                m.x_min,
+                m.x_max,
+                sprite_name=m.sprite_name,
+                damage=m.damage,
+            )
+            for m in self.level.movers
         ]
         self.target = pygame.Rect(*self.level.target)
         self.spawn_point = self.level.spawn_point
@@ -27,17 +35,31 @@ class Chamber:
 
     def reset(self) -> None:
         self.movers = [
-            MoverHazard(m.rect, m.speed, m.x_min, m.x_max) for m in self.level.movers
+            MoverHazard(
+                m.rect,
+                m.speed,
+                m.x_min,
+                m.x_max,
+                sprite_name=m.sprite_name,
+                damage=m.damage,
+            )
+            for m in self.level.movers
         ]
 
     def update(self, dt: float) -> None:
         for mover in self.movers:
             mover.update(dt)
 
-    def hits_hazard(self, rect: pygame.FRect) -> bool:
+    def hazard_damage(self, rect: pygame.FRect) -> float:
         if any(rect.colliderect(h) for h in self.hazards):
-            return True
-        return any(rect.colliderect(m.rect) for m in self.movers)
+            return 1.0
+        for m in self.movers:
+            if rect.colliderect(m.rect):
+                return m.damage
+        return 0.0
+
+    def hits_hazard(self, rect: pygame.FRect) -> bool:
+        return self.hazard_damage(rect) > 0.0
 
     def reached_target(self, rect: pygame.FRect) -> bool:
         return rect.colliderect(self.target)

@@ -39,6 +39,8 @@ class MoverDef:
     speed: float
     x_min: float
     x_max: float
+    sprite_name: str = "hazard_moving"
+    damage: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -85,8 +87,8 @@ LEVEL_ONE = LevelDef(
         speed_min=FALLING_HAZARD_SPEED_MIN,
         speed_max=FALLING_HAZARD_SPEED_MAX,
     ),
-    drain_rate=8.0,
-    start_years=900.0,
+    drain_rate=6.0,
+    start_years=500.0,
     par_time=30.0,
 )
 
@@ -107,12 +109,22 @@ LEVEL_TWO = LevelDef(
         (150, 152, 24, 5),
         (192, 74, 10, 16),
     ),
-    movers=(MoverDef(rect=(200, 150, 12, 10), speed=30.0, x_min=195.0, x_max=300.0),),
+    movers=(
+        # Time-infected robot
+        MoverDef(
+            rect=(200, 150, 12, 10),
+            speed=30.0,
+            x_min=195.0,
+            x_max=300.0,
+            sprite_name="hazard_moving",
+            damage=1.0,
+        ),
+    ),
     target=(270, 48, 14, 20),
     spawn_point=(16.0, 120.0),
     spawn=SpawnProfile(2.0, 0.7, 50.0, 85.0, 210.0),
-    drain_rate=10.0,
-    start_years=900.0,
+    drain_rate=9.0,
+    start_years=440.0,
     par_time=32.0,
 )
 
@@ -136,14 +148,30 @@ LEVEL_THREE = LevelDef(
         (138, 104, 10, 56),
     ),
     movers=(
-        MoverDef(rect=(100, 150, 12, 10), speed=45.0, x_min=95.0, x_max=180.0),
-        MoverDef(rect=(240, 150, 12, 10), speed=60.0, x_min=235.0, x_max=305.0),
+        # Time-infected robot
+        MoverDef(
+            rect=(100, 150, 12, 10),
+            speed=45.0,
+            x_min=95.0,
+            x_max=180.0,
+            sprite_name="hazard_moving",
+            damage=1.0,
+        ),
+        # Gravitational singularity / black hole
+        MoverDef(
+            rect=(240, 146, 14, 14),
+            speed=55.0,
+            x_min=235.0,
+            x_max=305.0,
+            sprite_name="hazard_blackhole",
+            damage=1.0,
+        ),
     ),
     target=(280, 30, 14, 20),
     spawn_point=(14.0, 140.0),
     spawn=SpawnProfile(1.6, 0.5, 40.0, 100.0, 240.0),
-    drain_rate=12.0,
-    start_years=850.0,
+    drain_rate=13.0,
+    start_years=380.0,
     par_time=35.0,
 )
 
@@ -187,7 +215,9 @@ def validate_level(level: LevelDef) -> list[str]:
     for rect in (*level.platforms, *level.obstacles, level.target):
         x, y, w, h = rect
         if x < 0 or y < 0 or x + w > INTERNAL_WIDTH or y + h > INTERNAL_HEIGHT:
-            problems.append(f"{level.name}: {rect} is outside the {INTERNAL_WIDTH}x{INTERNAL_HEIGHT} screen")
+            problems.append(
+                f"{level.name}: {rect} is outside the {INTERNAL_WIDTH}x{INTERNAL_HEIGHT} screen"
+            )
 
     spawn_x, spawn_y = level.spawn_point
     for rect in level.obstacles:
@@ -198,7 +228,9 @@ def validate_level(level: LevelDef) -> list[str]:
             and spawn_y < ry + rh + SPAWN_CLEARANCE
             and spawn_y + 16 > ry
         ):
-            problems.append(f"{level.name}: spawn {level.spawn_point} is too close to obstacle {rect}")
+            problems.append(
+                f"{level.name}: spawn {level.spawn_point} is too close to obstacle {rect}"
+            )
 
     tx, ty, tw, th = level.target
     for rect in level.obstacles:
@@ -210,7 +242,9 @@ def validate_level(level: LevelDef) -> list[str]:
         if mover.x_max <= mover.x_min:
             problems.append(f"{level.name}: mover {mover.rect} has an empty patrol range")
         if mover.rect[0] < mover.x_min or mover.rect[0] + mover.rect[2] > mover.x_max:
-            problems.append(f"{level.name}: mover {mover.rect} does not fit inside its patrol range")
+            problems.append(
+                f"{level.name}: mover {mover.rect} does not fit inside its patrol range"
+            )
 
     supported = [p for p in level.platforms if abs(p[1] - (ty + th)) <= 1]
     if not supported:
@@ -226,8 +260,7 @@ def validate_level(level: LevelDef) -> list[str]:
         reachable_from = [
             (bx, by, bw)
             for bx, by, bw, _ in reachable
-            if by - y <= RISE_BUDGET
-            and max(bx - (x + w), x - (bx + bw), 0) <= REACH_BUDGET
+            if by - y <= RISE_BUDGET and max(bx - (x + w), x - (bx + bw), 0) <= REACH_BUDGET
         ]
         if not reachable_from:
             problems.append(
@@ -258,7 +291,5 @@ def validate_all() -> list[str]:
                 f"difficulty regression: {later.name} drains slower than {earlier.name}"
             )
         if later.spawn.ramp_seconds > earlier.spawn.ramp_seconds:
-            problems.append(
-                f"difficulty regression: {later.name} ramps slower than {earlier.name}"
-            )
+            problems.append(f"difficulty regression: {later.name} ramps slower than {earlier.name}")
     return problems

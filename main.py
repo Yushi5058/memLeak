@@ -150,11 +150,27 @@ def draw_title(canvas, font) -> None:
         draw_centered(canvas, font, TITLE_PROMPT, 108, TEXT_COLOR)
 
 
+def draw_hearts(canvas: pygame.Surface, hearts: float) -> None:
+    start_x = INTERNAL_WIDTH - 36
+    y = 4
+    for i in range(3):
+        x = start_x + (i * 11)
+        val = max(0.0, min(1.0, hearts - i))
+        pygame.draw.rect(canvas, (100, 30, 40), (x, y, 9, 8), 1)
+        if val >= 1.0:
+            pygame.draw.rect(canvas, HAZARD_COLOR, (x + 1, y + 1, 7, 6))
+        elif val >= 0.5:
+            pygame.draw.rect(canvas, HAZARD_COLOR, (x + 1, y + 1, 3, 6))
+
+
 def render_world(
     canvas, chamber, session, state, font, sprites=None, flow=None, screens=None
 ) -> None:
     chamber.draw(canvas, session.falling, sprites)
-    session.player.draw(canvas, sprites)
+
+    # Invulnerability flashing
+    if session.invuln_timer <= 0.0 or int(session.invuln_timer * 15) % 2 == 0:
+        session.player.draw(canvas, sprites)
 
     hud = font.render(
         f"EARTH_ALLOC: {session.earth_alloc:06.1f} YRS  T:{session.elapsed:06.2f}s",
@@ -163,6 +179,8 @@ def render_world(
     )
     canvas.blit(hud, (4, 4))
     canvas.blit(font.render(chamber.level.name, False, TARGET_COLOR), (4, 13))
+
+    draw_hearts(canvas, session.hearts)
 
     if state is State.PAUSED:
         if screens is not None:
@@ -179,9 +197,7 @@ def render_world(
             70,
             TARGET_COLOR,
         )
-        best_time, best_years = (
-            flow.progress.best_for(flow.level_index) if flow else (0.0, 0.0)
-        )
+        best_time, best_years = flow.progress.best_for(flow.level_index) if flow else (0.0, 0.0)
         draw_centered(
             canvas,
             font,
@@ -270,9 +286,7 @@ def main() -> None:
                         continue
                     state = result
                 else:
-                    state = handle_key(
-                        event.key, state, flow.session, narration, flow, screens
-                    )
+                    state = handle_key(event.key, state, flow.session, narration, flow, screens)
                 if state is State.PROLOGUE and previous is not State.PROLOGUE:
                     narration.active.reset()
 
