@@ -8,12 +8,13 @@ from src.settings import (
     PLAYER_COLOR,
 )
 
+PLAYER_WIDTH = 12
+PLAYER_HEIGHT = 16
+
 
 class Player:
     def __init__(self, x: float, y: float):
-        self.rect = pygame.Rect(int(x), int(y), 12, 16)
-        self.pos_x = float(x)
-        self.pos_y = float(y)
+        self.rect = pygame.FRect(float(x), float(y), PLAYER_WIDTH, PLAYER_HEIGHT)
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.on_ground = False
@@ -35,16 +36,13 @@ class Player:
         self.vel_y += GRAVITY * dt
 
         # --- 1. Horizontal Movement & Collision ---
-        self.pos_x += self.vel_x * dt
-        self.rect.x = round(self.pos_x)
+        self.rect.x += self.vel_x * dt
 
         # Screen boundaries
         if self.rect.left < 0:
             self.rect.left = 0
-            self.pos_x = float(self.rect.x)
         elif self.rect.right > INTERNAL_WIDTH:
             self.rect.right = INTERNAL_WIDTH
-            self.pos_x = float(self.rect.x)
 
         for plat in platforms:
             if self.rect.colliderect(plat):
@@ -52,11 +50,9 @@ class Player:
                     self.rect.right = plat.left
                 elif self.vel_x < 0:
                     self.rect.left = plat.right
-                self.pos_x = float(self.rect.x)
 
         # --- 2. Vertical Movement & Collision ---
-        self.pos_y += self.vel_y * dt
-        self.rect.y = round(self.pos_y)
+        self.rect.y += self.vel_y * dt
         self.on_ground = False
 
         for plat in platforms:
@@ -68,7 +64,6 @@ class Player:
                 elif self.vel_y < 0:  # Hitting ceiling
                     self.rect.top = plat.bottom
                     self.vel_y = 0.0
-                self.pos_y = float(self.rect.y)
 
     def draw(self, surface: pygame.Surface):
         pygame.draw.rect(surface, PLAYER_COLOR, self.rect)

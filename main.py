@@ -85,25 +85,25 @@ while running:
                     if earth_alloc <= 0:
                         earth_alloc = 0
                         game_over = True
+    # 2. Per-frame simulation (must run every frame, not once per event)
+    if not game_over and not won:
+        player.handle_input(pygame.key.get_pressed())
+        player.update(dt, platforms)
 
-        if not game_over and not won:
-            player.handle_input(pygame.key.get_pressed())
-            player.update(dt, platforms)
+        # Check Hazard collisions
+        for h in hazards:
+            if player.rect.colliderect(h):
+                earth_alloc -= HAZARD_PENALTY
+                # Respawn player at start of chamber
+                player = Player(SPAWN_X, SPAWN_Y)
+                if earth_alloc <= 0:
+                    earth_alloc = 0
+                    game_over = True
+                break
 
-            # Check Hazard collisions
-            for h in hazards:
-                if player.rect.colliderect(h):
-                    earth_alloc -= HAZARD_PENALTY
-                    # Respawn player at start of chamber
-                    player = Player(SPAWN_X, SPAWN_Y)
-                    if earth_alloc <= 0:
-                        earth_alloc = 0
-                        game_over = True
-                    break
-
-            # Check Target collision
-            if player.rect.colliderect(target):
-                won = True
+        # Check Target collision
+        if player.rect.colliderect(target):
+            won = True
 
     # 3. Render
     canvas.fill(BG_COLOR)
