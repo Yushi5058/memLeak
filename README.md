@@ -3,7 +3,7 @@
 A PyWeek jam platformer about spending a finite budget of Earth years.
 
 You stand still and the planet loses time. Reach the gate before the
-allocation hits zero.
+allocation hits zero or your vital chronos deplete.
 
 ## Requirements
 
@@ -12,9 +12,23 @@ allocation hits zero.
 
 ## Install and run
 
+### Linux / macOS
+
 ```sh
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
+pip install -r requirements.txt
+python main.py
+```
+
+### Windows (Command Prompt / PowerShell)
+
+```cmd
+:: Create and activate virtual environment
+python -m venv .venv
+.venv\Scripts\activate
+
+:: Install dependencies and launch
 pip install -r requirements.txt
 python main.py
 ```
@@ -37,125 +51,116 @@ Every menu is keyboard-only; there is no mouse input.
 
 ## How it plays
 
-`EARTH_ALLOC` is your life bar and your score at the same time. Three
-things drain it:
+`EARTH_ALLOC` represents the timeline's lifespan and your final score, while your
+**3-Heart Vital System** safeguards your physical cohesion:
 
-- **Standing still** costs 8 years per second, always.
-- **Jumping** costs 2 years per jump.
-- **Taking a hit** costs 50 years and respawns you at the entrance.
+- **Temporal Drain**: Standing still burns years continually based on the chamber's atmospheric decay rate.
+- **Action Tax**: Stepping costs 0.5 years; jumping costs 2.0 years.
+- **Hazard Damage**: Hazard strikes damage your hearts instead of draining years, granting 1.0s of invulnerability frames (i-frames):
+  - **Falling Meteorite**: Deducts 0.5 heart.
+  - **Time-Infected Robot**: Deducts 1.0 heart.
+  - **Black Hole Singularity**: Deducts 1.0 heart.
+- **Timeline Failure**: The run halts if `EARTH_ALLOC` reaches 0 or your hearts reach 0.0.
 
-Falling hazards spawn on a timer that ramps from one every 2.5 seconds
-down to one every 0.8 seconds over the first minute, so the chamber gets
-hostile whether or not you move. Clearing it banks whatever allocation you
-have left, and the best time and best remaining years persist across
-retries.
+Clearing a chamber banks whatever allocation remains, and your best time and saved
+years persist across retries.
 
 ## The three chambers
 
 Progress is saved to `~/.memleak/progress.json`, so unlocks, best times,
-best years, achievements, which scripts you have already read, and your
-audio volume and mute choice all survive a restart.
+best years, achievements, read story scripts, and audio preferences all survive a restart.
 
-| Chamber | What changes |
-| --- | --- |
-| `OUTER HULL` | The original chamber. Ground movement, one hazard ramp. |
-| `CARGO SPINE` | Faster drain, tighter spawns, the first moving hazard. |
-| `CORE BREACH` | Narrower platforms, faster movers, a much tighter budget. |
+| Chamber | Starting Time | Drain Rate | What changes |
+| --- | --- | --- | --- |
+| `OUTER HULL` | 500.0 YRS | 6.0 YRS/s | Training run. Generous margin, falling meteorites only. |
+| `CARGO SPINE` | 440.0 YRS | 9.0 YRS/s | Faster drain, tighter spawns, time-infected patrol robots. |
+| `CORE BREACH` | 380.0 YRS | 13.0 YRS/s | Rapid decay, narrow platforms, high-speed black hole singularities. |
 
-`src/levels.py` holds the level table and a geometry validator that
-enforces the physics budgets the player can actually clear, so an
-unreachable jump fails loudly instead of shipping.
+`src/levels.py` holds the level table and a geometry validator that enforces
+physics reach budgets, ensuring jumps are physically clearable before shipping.
 
 ## Achievements
 
-Five, awarded the moment you clear a chamber:
+Seven achievements in total (five visible, two hidden secrets revealed when earned):
 
 | Key | How |
 | --- | --- |
 | `first_steps` | Clear the first chamber |
 | `clean_run` | Clear any chamber without taking a hit |
 | `speedster` | Clear a chamber under its par time |
-| `deep_pocket` | Bank at least 500 years |
+| `deep_pocket` | Bank at least 300 years in one run |
 | `completionist` | Clear all three chambers |
 
-There are also secret achievements. They are not listed here and do not
-appear on the achievements screen until you earn them, so the total in the
-header only counts what you can already see. Find them by playing.
+Secret achievements stay off the screen and do not contribute to the header
+count until unlocked. Discover them through disciplined play.
 
 ## Sprites
 
-The game ships with rectangle placeholders and needs no art to run. Drop
+The game ships with rectangle placeholders and requires no external art to run. Drop
 PNGs into `assets/sprites/` and they are picked up automatically at the
-next launch; anything missing or unreadable falls back per-sprite, so a
-partial set still works.
+next launch; anything missing or unreadable falls back per-sprite.
 
-| File | Canonical size |
-| --- | --- |
-| `player.png` | 24x32 |
-| `hazard.png` | 20x28 |
-| `portal.png` | 28x40 |
-| `platform.png` | 16x16, tiles horizontally |
-| `spike.png` | 8x8, tiles horizontally |
+| File | Target size | Replaces | Tiled? |
+| --- | --- | --- | --- |
+| `player.png` | 24x32 | Player hitbox (12x16) | no |
+| `hazard_falling.png` | 20x28 | Falling meteorite (10x14) | no |
+| `hazard_moving.png` | 24x32 | Time-infected robot (12x16) | no |
+| `hazard_blackhole.png` | 28x40 | Black hole singularity (14x20) | no |
+| `portal.png` | 28x40 | Exit gate (14x20) | no |
+| `tile_platform.png` | 16x16 | Ground and ledges | yes |
+| `tile_hazard.png` | 8x8 | Floor spikes and wall barriers | yes |
 
-Images may be any size; they are rescaled to the canonical box on load.
-`docs/SPRITES.md` has the full art brief and image prompts.
+Images are rescaled to their canonical box on load. `docs/SPRITES.md` contains
+the complete visual brief, palette hex locks, and image-generation prompts.
 
 ## Project layout
 
 ```
 main.py              event pump, state dispatch, rendering
-src/settings.py      every tuning constant and the palette
+src/settings.py      tuning constants, physics budgets, and palette
 src/states.py        the State enum
 src/menu.py          reusable keyboard menu widget
 src/screens.py       main, pause, level select, settings, achievements
-src/levels.py        level table and geometry validator
-src/progression.py   the saved profile on disk
-src/flow.py          start, restart, advance, and win recording
+src/levels.py        level table, mover definitions, and geometry validator
+src/progression.py   saved profile on disk
+src/flow.py          chamber routing, restart, advance, and win recording
 src/achievements.py  achievement definitions and unlock rules
 src/chamber.py       static level geometry and collision queries
-src/session.py       one run's mutable state and its simulation step
-src/player.py        player physics
-src/hazards.py       falling and moving hazards
+src/session.py       run simulation, 3-heart system, i-frames, and timer integration
+src/player.py        player physics and collision resolution
+src/hazards.py       falling meteorites, moving robots, and black holes
 src/sprites.py       sprite loading, normalising, rectangle fallback
 src/audio.py         sfx and music playback, degrades to silence
 src/overlay.py       cached CRT scanline and vignette
 src/prologue.py      phased typewriter reveal of PROLOGUE.txt
-src/chapters.py      CHAPTER_I/II scripts and the on-screen script holder
+src/chapters.py      CHAPTER_I/II scripts and on-screen narration manager
 tools/gen_sfx.py     regenerates the sound effects
 tools/gen_music.py   regenerates the chiptune loops
 tests/               unit tests
 ```
 
 `PROLOGUE.txt` introduces the first chamber. Each later chamber has its own
-`CHAPTER_*.txt` script, shown when you walk in from the cleared screen.
-Scripts play every time you enter their chamber, so the story can be
-re-read on replay. Press `S` at any point to skip to play, or `Enter` to
-advance one phase at a time. Lines wrap to 18 columns so they fit the 320px
-screen.
+`CHAPTER_*.txt` script shown upon entry. Press `S` to skip straight to play or
+`Enter` to advance phase-by-phase. Lines wrap to 18 columns to fit the 320px screen.
 
 Once every chamber has been cleared, the final cleared screen offers `Enter`
-to return to the main menu, which keeps reading `START`. Nothing new unlocks,
-but every script and every achievement stays reachable.
+to return to the main menu. Everything remains replayable, and achievements stay reachable.
 
-Balance lives entirely in `src/settings.py`. The simulation runs at a
-fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour
-so pixels stay square.
+Balance lives entirely in `src/settings.py` and `src/levels.py`. The simulation runs at a
+fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour so pixels stay square.
 
 ## Development
 
 ```sh
-python -m unittest discover -s tests -t .   # 269 tests
+python -m unittest discover -s tests -t .   # 273 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music
 ```
 
 `tools/gen_sfx.py` and `tools/gen_music.py` use only the standard library
-and are deterministic, so regenerating produces byte-identical files. A
-test asserts the committed WAVs still match a fresh synthesis. The music
-generator ends every track on a rest and fades the boundary to silence so
-the loops wrap without a click. The tests set `SDL_VIDEODRIVER` and
-`SDL_AUDIODRIVER` to `dummy`, so they run headless.
+and are deterministic, so regenerating produces byte-identical files.
+Tests set `SDL_VIDEODRIVER` and `SDL_AUDIODRIVER` to `dummy`, allowing them to run headless.
 
 ## Third-party assets
 
@@ -173,41 +178,24 @@ The full license text is in `assets/fonts/LICENSE.TXT`.
   modification of the font must be shared under the same terms.
 - Vendored file SHA-256:
   `09c8e0a4bc82507dec55bbcc215ec7dc0388f565432ac81cab079cd0345cb6d0`
-  Compare it against the upstream pack to confirm the file is byte-for-byte
-  unmodified; this has not been re-verified against a fresh upstream
-  download.
 
 `assets/fonts/Micro5-Regular.ttf` is **Micro 5** by **The Soft Type Project
 Authors**, obtained from the Google Fonts repository at
 <https://github.com/google/fonts/tree/main/ofl/micro5>.
 
 Licensed under the **SIL Open Font License, Version 1.1** — the full license
-text is in `assets/fonts/OFL-Micro5.txt`. The vendored file is unmodified;
-its SHA-256 is
+text is in `assets/fonts/OFL-Micro5.txt`. Vendored file SHA-256:
 `08a08c0d10129d2ecd869ff2f8914fcbf32487d3cbee3568b2a2957866dfdac8`.
 
 Micro 5 is used for the achievement goal text. Its glyphs sit on a 5x6 pixel
-grid, so at 14px it renders 1:1 with no scaling and stays crisp. It shares
-the 8x8 UI font's cap height but advances roughly 4.7px per glyph against
-8px, so the long goal lines fit on one row where the 8x8 font overflowed the
-320px screen.
-
-If you fork this project, keep the attribution above and the license file
-in place.
+grid, rendering 1:1 at 14px with crisp square pixels.
 
 ### Audio
 
 All sound effects and music are synthesised from scratch by
-`tools/gen_sfx.py` and `tools/gen_music.py` and carry no third-party
-rights.
+`tools/gen_sfx.py` and `tools/gen_music.py` and carry no third-party rights.
 
 ### Sprites
 
-No sprite art is bundled. The game ships coloured rectangles and only uses
-PNGs you supply in `assets/sprites/`, so any art you drop in is entirely
-yours to license. `docs/SPRITES.md` describes the sizes the loader expects.
-
-## License
-
-No license has been chosen for the game source yet. The bundled font is
-separately licensed under CC BY-SA 4.0 as described above.
+No external sprite art is bundled. The game ships coloured rectangle fallbacks and only
+loads PNGs you place in `assets/sprites/`.
