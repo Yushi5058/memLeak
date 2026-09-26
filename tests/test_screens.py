@@ -8,14 +8,51 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame
 
-from src.achievements import ACHIEVEMENTS
+import src.screens as screens_module
+from main import FONT_PATH, FONT_SIZE, SMALL_FONT_PATH, SMALL_FONT_SIZE
+from src.achievements import ACHIEVEMENTS, Achievement
 from src.audio import VOLUME_STEPS, Audio
 from src.flow import Flow
 from src.levels import LEVELS
 from src.progression import Progress
 from src.screens import Screens
-from src.settings import BG_COLOR
+from src.settings import BG_COLOR, EARNED_TILE_COLOR, LOCKED_TILE_COLOR
 from src.states import State
+
+
+def ink_size(font, text):
+    """Width and tallest-ink-row height of `text`, ignoring side bearing."""
+    image = font.render(text, False, (255, 255, 255), (0, 0, 0))
+    width, height = image.get_size()
+    rows = [
+        y
+        for y in range(height)
+        if any(image.get_at((x, y))[0] > 127 for x in range(width))
+    ]
+    return width, (rows[-1] - rows[0] + 1) if rows else 0
+
+
+class SurfaceSpy:
+    """Delegates to a real surface while recording blits and fills."""
+
+    def __init__(self, real):
+        self.real = real
+        self.blits = []
+        self.fills = []
+
+    def get_width(self):
+        return self.real.get_width()
+
+    def get_height(self):
+        return self.real.get_height()
+
+    def blit(self, surface, pos, *args, **kwargs):
+        self.blits.append((surface.get_width(), pos[0]))
+        return self.real.blit(surface, pos, *args, **kwargs)
+
+    def fill(self, color, rect=None, *args, **kwargs):
+        self.fills.append((color, rect))
+        return self.real.fill(color, rect, *args, **kwargs)
 
 
 def pick(menu, label_fragment):
@@ -31,6 +68,8 @@ class ScreensTest(unittest.TestCase):
         pygame.init()
         pygame.font.init()
         self.font = pygame.font.Font(None, 12)
+        self.pixel_font = pygame.font.Font(str(FONT_PATH), FONT_SIZE)
+        self.small_font = pygame.font.Font(str(SMALL_FONT_PATH), SMALL_FONT_SIZE)
         self.canvas = pygame.Surface((320, 180))
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -262,29 +301,84 @@ class ScreensTest(unittest.TestCase):
         self.assertIn("12.25s", label)
 
     def test_achievement_rows_are_centered(self):
-        recorded = []
-
-        class Spy:
-            def __init__(self, real):
-                self.real = real
-
-            def get_width(self):
-                return self.real.get_width()
-
-            def blit(self, surface, pos, *args, **kwargs):
-                recorded.append((surface.get_width(), pos[0]))
-                return self.real.blit(surface, pos, *args, **kwargs)
-
-        self.screens.draw(Spy(self.canvas), self.font, State.ACHIEVEMENTS)
+        spy = SurfaceSpy(self.canvas)
+        self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
+        self.assertTrue(spy.blits)
         width = self.canvas.get_width()
-        self.assertTrue(recorded)
-        for surface_width, x in recorded:
-            self.assertEqual(x, (width - surface_width) // 2)
+        tiles = [rect for _, rect in spy.fills if rect is not None]
+        self.assertTrue(tiles)
+        for tile in tiles:
+            self.assertEqual(tile[0], (width - tile[2]) // 2)
+        for surface_width, x in spy.blits:
+            self.assertGreaterEqual(x, 0)
+            self.assertLessEqual(x + surface_width, width)
 
     def test_achievement_text_fits_inside_the_screen(self):
         for achievement in ACHIEVEMENTS:
             for text in (f"* {achievement.label}", achievement.hint):
-                self.assertLessEqual(self.font.size(text)[0], self.canvas.get_width())
+                self.assertLessEqual(
+                    self.pixel_font.size(text)[0], self.canvas.get_width()
+                )
+                self.assertLessEqual(
+                    self.small_font.size(text)[0], self.canvas.get_width()
+                )
+
+    def test_rows_are_backed_by_a_tile_that_differentiates_earned_from_locked(self):
+        self.progress.unlock_achievement(ACHIEVEMENTS[0].key)
+        spy = SurfaceSpy(self.canvas)
+        self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
+        painted = {color for color, rect in spy.fills if rect is not None}
+        self.assertIn(EARNED_TILE_COLOR, painted)
+        self.assertIn(LOCKED_TILE_COLOR, painted)
+
+    def test_every_row_gets_a_tile(self):
+        spy = SurfaceSpy(self.canvas)
+        self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
+        tiles = [rect for _, rect in spy.fills if rect is not None]
+        self.assertEqual(len(tiles), len(ACHIEVEMENTS))
+        for rect in tiles:
+            self.assertGreaterEqual(rect[0], 0)
+            self.assertLessEqual(rect[0] + rect[2], self.canvas.get_width())
+            self.assertLessEqual(rect[1] + rect[3], self.canvas.get_height())
+
+    def test_the_description_font_is_smaller_than_the_label_font(self):
+        """Micro 5 is a small pixel face: much narrower per glyph, never taller."""
+        achievement = ACHIEVEMENTS[0]
+        label = f"* {achievement.label}"
+        hint = achievement.hint
+        _, label_h = ink_size(self.pixel_font, label)
+        hint_w, hint_h = ink_size(self.small_font, hint)
+        self.assertLessEqual(hint_h, label_h)
+        big_per_char = self.pixel_font.size(hint)[0] / len(hint)
+        small_per_char = self.small_font.size(hint)[0] / len(hint)
+        self.assertLess(small_per_char, big_per_char * 0.75)
+        self.assertLess(hint_w, self.pixel_font.size(hint)[0])
+
+    def test_a_locked_row_still_shows_its_name_and_its_goal(self):
+        self.progress.achievements = []
+        spy = SurfaceSpy(self.canvas)
+        self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
+        self.assertTrue(spy.blits)
+        self.assertEqual(len(spy.blits), len(ACHIEVEMENTS) * 2 + 2)
+
+    def test_everything_still_fits_once_secrets_are_added(self):
+        extra = (
+            Achievement("secret_one", "SECRET ONE", "A deliberately long goal line"),
+            Achievement("secret_two", "SECRET TWO", "Another long goal line here"),
+        )
+        original = screens_module.ACHIEVEMENTS
+        screens_module.ACHIEVEMENTS = ACHIEVEMENTS + extra
+        try:
+            spy = SurfaceSpy(self.canvas)
+            self.screens.draw(spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
+        finally:
+            screens_module.ACHIEVEMENTS = original
+        for surface_width, x in spy.blits:
+            self.assertGreaterEqual(x, 0)
+            self.assertLessEqual(x + surface_width, self.canvas.get_width())
+        for _, rect in spy.fills:
+            if rect is not None:
+                self.assertLessEqual(rect[1] + rect[3], self.canvas.get_height())
 
 
 if __name__ == "__main__":

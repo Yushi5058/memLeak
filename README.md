@@ -132,7 +132,7 @@ so pixels stay square.
 ## Development
 
 ```sh
-python -m unittest discover -s tests -t .   # 247 tests
+python -m unittest discover -s tests -t .   # 252 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music
@@ -164,6 +164,21 @@ The full license text is in `assets/fonts/LICENSE.TXT`.
   Compare it against the upstream pack to confirm the file is byte-for-byte
   unmodified; this has not been re-verified against a fresh upstream
   download.
+
+`assets/fonts/Micro5-Regular.ttf` is **Micro 5** by **The Soft Type Project
+Authors**, obtained from the Google Fonts repository at
+<https://github.com/google/fonts/tree/main/ofl/micro5>.
+
+Licensed under the **SIL Open Font License, Version 1.1** — the full license
+text is in `assets/fonts/OFL-Micro5.txt`. The vendored file is unmodified;
+its SHA-256 is
+`08a08c0d10129d2ecd869ff2f8914fcbf32487d3cbee3568b2a2957866dfdac8`.
+
+Micro 5 is used for the achievement goal text. Its glyphs sit on a 5x6 pixel
+grid, so at 14px it renders 1:1 with no scaling and stays crisp. It shares
+the 8x8 UI font's cap height but advances roughly 4.7px per glyph against
+8px, so the long goal lines fit on one row where the 8x8 font overflowed the
+320px screen.
 
 If you fork this project, keep the attribution above and the license file
 in place.

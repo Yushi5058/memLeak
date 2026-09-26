@@ -28,6 +28,9 @@ from src.states import State
 FONT_PATH = Path(__file__).parent / "assets" / "fonts" / "Px437_IBM_EGA_8x8.ttf"
 # 8px is the 1:1 design size of the 8x8 font; other sizes break pixel crispness.
 FONT_SIZE = 8
+# Micro 5's glyphs are a 5x6 grid inside a 14px em, so 14 is its 1:1 size, not 5.
+SMALL_FONT_PATH = FONT_PATH.parent / "Micro5-Regular.ttf"
+SMALL_FONT_SIZE = 14
 
 MOVE_KEYS = (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d)
 CONFIRM_KEYS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE)
@@ -42,6 +45,12 @@ def load_font() -> pygame.font.Font:
     if FONT_PATH.is_file():
         return pygame.font.Font(str(FONT_PATH), FONT_SIZE)
     return pygame.font.SysFont("monospace", FONT_SIZE, bold=True)
+
+
+def load_small_font() -> pygame.font.Font:
+    if SMALL_FONT_PATH.is_file():
+        return pygame.font.Font(str(SMALL_FONT_PATH), SMALL_FONT_SIZE)
+    return load_font()
 
 
 MENU_STATES = (
@@ -189,6 +198,7 @@ def render(
     sprites=None,
     flow=None,
     screens=None,
+    small_font=None,
 ) -> None:
     canvas.fill(BG_COLOR)
     if state is State.TITLE:
@@ -196,7 +206,7 @@ def render(
     elif state is State.PROLOGUE:
         narration.active.draw(canvas, font)
     elif state in MENU_STATES and screens is not None:
-        screens.draw(canvas, font, state)
+        screens.draw(canvas, font, state, small_font or font)
     else:
         render_world(canvas, chamber, session, state, font, sprites, flow, screens)
 
@@ -209,6 +219,7 @@ def main() -> None:
     canvas = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
     clock = pygame.time.Clock()
     font = load_font()
+    small_font = load_small_font()
 
     flow = Flow(Progress())
     narration = Narration(Prologue.from_file())
@@ -282,6 +293,7 @@ def main() -> None:
             sprites,
             flow,
             screens,
+            small_font,
         )
         overlay.draw(canvas)
         window.blit(pygame.transform.scale(canvas, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))

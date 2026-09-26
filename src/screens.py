@@ -2,8 +2,29 @@
 from src.achievements import ACHIEVEMENTS
 from src.levels import LEVELS
 from src.menu import BACK_KEYS, CONFIRM_KEYS, LEFT_KEYS, RIGHT_KEYS, Menu
-from src.settings import DIM_COLOR, HAZARD_COLOR, TARGET_COLOR, TEXT_COLOR
+from src.settings import (
+    DIM_COLOR,
+    EARNED_TILE_COLOR,
+    HAZARD_COLOR,
+    LOCKED_TILE_COLOR,
+    TARGET_COLOR,
+    TEXT_COLOR,
+)
 from src.states import State
+
+
+def _trim_to_ink(surface):
+    """Crop rendered text to its glyphs so layout measures ink, not the line box.
+
+    pygame-ce renders text without per-pixel alpha, so the empty rows of a
+    tall font's surface are opaque rather than transparent and cannot be
+    detected by colour. `get_bounding_rect` still reports the real ink box.
+    """
+    box = surface.get_bounding_rect()
+    if not box.width or not box.height:
+        return surface
+    return surface.subsurface(box).copy()
+
 
 MAIN_ITEMS = (
     {"label": "START", "action": "start"},
@@ -150,7 +171,7 @@ class Screens:
         self._sync_settings_labels()
         return State.SETTINGS
 
-    def draw(self, canvas, font, state: State) -> None:
+    def draw(self, canvas, font, state: State, small_font=None) -> None:
         if state is State.MENU:
             self.main.draw(canvas, font, y=44)
             self._hint(canvas, font, "ARROWS MOVE   ENTER SELECT")
@@ -164,28 +185,56 @@ class Screens:
             self.settings.draw(canvas, font, y=40)
             self._hint(canvas, font, "LEFT/RIGHT ADJUST   ESC BACK")
         elif state is State.ACHIEVEMENTS:
-            self._draw_achievements(canvas, font)
+            self._draw_achievements(canvas, font, small_font or font)
 
-    def _draw_achievements(self, canvas, font) -> None:
+    def _draw_achievements(self, canvas, font, small_font) -> None:
         progress = self.flow.progress
-        earned = len(progress.achievements)
+        earned = sum(
+            1 for a in ACHIEVEMENTS if progress.has_achievement(a.key)
+        )
         title = font.render(
             f"ACHIEVEMENTS  {earned}/{len(ACHIEVEMENTS)}", False, TARGET_COLOR
         )
-        self._centered(canvas, title, 24)
-        y = 40
+        self._centered(canvas, title, 22)
+
+        rows = []
         for achievement in ACHIEVEMENTS:
             unlocked = progress.has_achievement(achievement.key)
             mark = "*" if unlocked else " "
             color = TEXT_COLOR if unlocked else DIM_COLOR
-            # Label+hint on one line is 41ch at 8px, 8px wider than the 320px screen.
-            self._centered(
-                canvas, font.render(f"{mark} {achievement.label}", False, color), y
+            rows.append(
+                (
+                    unlocked,
+                    _trim_to_ink(font.render(f"{mark} {achievement.label}", False, color)),
+                    _trim_to_ink(
+                        small_font.render(achievement.hint, False, DIM_COLOR)
+                    ),
+                )
             )
-            self._centered(
-                canvas, font.render(achievement.hint, False, DIM_COLOR), y + 9
+
+        label_w = max(r[1].get_width() for r in rows)
+        hint_w = max(r[2].get_width() for r in rows)
+        gap = 6
+        pad = 6
+        tile_w = label_w + gap + hint_w + pad * 2
+        tile_x = (canvas.get_width() - tile_w) // 2
+        row_h = (
+            max(max(r[1].get_height() for r in rows), max(r[2].get_height() for r in rows))
+            + 4
+        )
+        pitch = row_h + 3
+        y = 40
+        for unlocked, label, hint in rows:
+            canvas.fill(
+                EARNED_TILE_COLOR if unlocked else LOCKED_TILE_COLOR,
+                (tile_x, y, tile_w, row_h),
             )
-            y += 22
+            label_x = tile_x + pad + (label_w - label.get_width())
+            hint_x = tile_x + pad + label_w + gap
+            text_y = y + (row_h - hint.get_height()) // 2
+            canvas.blit(label, (label_x, y + (row_h - label.get_height()) // 2))
+            canvas.blit(hint, (hint_x, text_y))
+            y += pitch
         self._hint(canvas, font, "ESC BACK")
 
     def _centered(self, canvas, surface, y: int) -> None:
