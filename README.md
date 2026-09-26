@@ -26,6 +26,7 @@ python main.py
 | `Up` / `Down` | Move the menu selection |
 | `Left` / `Right` | Adjust the selected settings row |
 | `Enter` / `Space` | Confirm, or advance the current script one phase |
+| `S` | Skip the rest of the current script and start playing |
 | `Esc` | Back out of a menu, or pause and resume |
 | `Left` / `A` | Step left (costs 0.5 years) |
 | `Right` / `D` | Step right (costs 0.5 years) |
@@ -126,8 +127,15 @@ tests/               unit tests
 ```
 
 `PROLOGUE.txt` introduces the first chamber. Each later chamber has its own
-`CHAPTER_*.txt` script, shown when you walk in from the cleared screen, and
-only the first time. Lines wrap to 18 columns so they fit the 320px screen.
+`CHAPTER_*.txt` script, shown when you walk in from the cleared screen.
+Scripts play every time you enter their chamber, so the story can be
+re-read on replay. Press `S` at any point to skip to play, or `Enter` to
+advance one phase at a time. Lines wrap to 18 columns so they fit the 320px
+screen.
+
+Once every chamber has been cleared, the final cleared screen offers `Enter`
+to return to the main menu, where `START` becomes `REPLAY CHAMBERS`. Nothing
+new unlocks, but every script and every achievement stays reachable.
 
 Balance lives entirely in `src/settings.py`. The simulation runs at a
 fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour
@@ -136,7 +144,7 @@ so pixels stay square.
 ## Development
 
 ```sh
-python -m unittest discover -s tests -t .   # 259 tests
+python -m unittest discover -s tests -t .   # 269 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music

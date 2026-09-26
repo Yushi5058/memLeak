@@ -73,10 +73,10 @@ class PendingChapterTest(unittest.TestCase):
         self.flow.start(0)
         self.assertIsNone(self.flow.pending_chapter())
 
-    def test_a_seen_chapter_is_not_offered_again(self):
+    def test_a_seen_chapter_is_offered_again(self):
         self.flow.advance()
         self.flow.mark_chapter_seen()
-        self.assertIsNone(self.flow.pending_chapter())
+        self.assertIsNotNone(self.flow.pending_chapter())
 
     def test_marking_is_recorded_once(self):
         self.flow.advance()
@@ -142,12 +142,12 @@ class ChapterPlaybackTest(unittest.TestCase):
         self.assertFalse(self.flow.progress.seen_prologue)
         self.assertTrue(Progress(self.path).has_seen_chapter(1))
 
-    def test_an_already_seen_chapter_does_not_replay(self):
+    def test_an_already_seen_chapter_replays(self):
         self.confirm(State.CLEARED)
         walk(self.narration.active, self.narration, self.flow)
         self.flow.start(0)
-        self.assertIs(self.confirm(State.CLEARED), State.PLAY)
-        self.assertFalse(self.narration.in_chapter)
+        self.assertIs(self.confirm(State.CLEARED), State.PROLOGUE)
+        self.assertTrue(self.narration.in_chapter)
 
     def test_the_next_chamber_gets_its_own_chapter(self):
         self.confirm(State.CLEARED)

@@ -33,6 +33,7 @@ SMALL_FONT_PATH = FONT_PATH.parent / "Micro5-Regular.ttf"
 SMALL_FONT_SIZE = 14
 
 MOVE_KEYS = (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d)
+SKIP_KEYS = (pygame.K_s,)
 CONFIRM_KEYS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE)
 
 TITLE_TEXT = "memLeak"
@@ -74,6 +75,16 @@ MUSIC_FOR_STATE = {
 }
 
 
+def _finish_narration(narration: Narration, flow: Flow | None) -> None:
+    if flow is not None:
+        if narration.in_chapter:
+            flow.mark_chapter_seen()
+        else:
+            flow.progress.seen_prologue = True
+            flow.progress.save()
+    narration.end()
+
+
 def handle_key(
     key: int,
     state: State,
@@ -86,14 +97,12 @@ def handle_key(
         if key in CONFIRM_KEYS:
             return State.PROLOGUE
     elif state is State.PROLOGUE:
+        if key in SKIP_KEYS:
+            narration.active.skip_all()
+            _finish_narration(narration, flow)
+            return State.PLAY
         if key in CONFIRM_KEYS and not narration.active.advance():
-            if flow is not None:
-                if narration.in_chapter:
-                    flow.mark_chapter_seen()
-                else:
-                    flow.progress.seen_prologue = True
-                    flow.progress.save()
-            narration.end()
+            _finish_narration(narration, flow)
             return State.PLAY
     elif state is State.PLAY:
         if key in MOVE_KEYS:
@@ -120,6 +129,8 @@ def handle_key(
                 if flow.advance():
                     narration.begin(flow.pending_chapter())
                     return State.PROLOGUE if narration.in_chapter else State.PLAY
+                if flow.all_cleared:
+                    return State.MENU
             elif flow is None:
                 session.reset()
                 return State.PLAY
@@ -179,13 +190,13 @@ def render_world(
             TEXT_COLOR,
         )
         has_next = flow is not None and flow.level_index + 1 < flow.level_count
-        draw_centered(
-            canvas,
-            font,
-            "[ENTER] NEXT CHAMBER   [R] REPLAY" if has_next else "ALL CHAMBERS CLEARED",
-            96,
-            TEXT_COLOR,
-        )
+        if has_next:
+            cleared_hint = "[ENTER] NEXT CHAMBER   [R] REPLAY"
+        elif flow is not None and flow.all_cleared:
+            cleared_hint = "ALL CHAMBERS CLEARED   [ENTER] MAIN MENU   [R] REPLAY"
+        else:
+            cleared_hint = "[R] REPLAY"
+        draw_centered(canvas, font, cleared_hint, 96, TEXT_COLOR)
 
 
 def render(
@@ -228,7 +239,7 @@ def main() -> None:
     audio.sfx_volume = flow.progress.sfx_volume
     audio.muted = flow.progress.muted
     audio.apply_volumes()
-    screens = Screens(flow, audio)
+    screens = Screens(flow, audio, narration)
     sprites = Sprites()
     overlay = CrtOverlay(INTERNAL_WIDTH, INTERNAL_HEIGHT)
     state = State.MENU

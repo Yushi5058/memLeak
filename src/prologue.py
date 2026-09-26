@@ -7,7 +7,9 @@ from src.settings import TARGET_COLOR, TEXT_COLOR
 PROLOGUE_PATH = Path(__file__).resolve().parent.parent / "PROLOGUE.txt"
 CHARS_PER_SECOND = 22.0
 PROMPT = "[ENTER]"
+SKIP_PROMPT = "[S] SKIP"
 PROMPT_MARGIN = 4
+PROMPT_GAP = 6
 BLINK_INTERVAL_MS = 400
 MAX_COLUMNS = 18
 TEXT_SCALE = 2
@@ -85,6 +87,20 @@ class Prologue:
     def skip(self) -> None:
         self.revealed = float(self.total)
 
+    def skip_all(self) -> None:
+        """Reveal the entire script at once, landing on its final phase."""
+        if not self.phases:
+            return
+        self.index = len(self.phases) - 1
+        self.revealed = float(self.total)
+
+    @staticmethod
+    def _scaled(surface):
+        return pygame.transform.scale(
+            surface,
+            (surface.get_width() * TEXT_SCALE, surface.get_height() * TEXT_SCALE),
+        )
+
     def advance(self) -> bool:
         if not self.phase_finished:
             self.skip()
@@ -117,30 +133,28 @@ class Prologue:
             // 2,
         )
         if self.title:
-            heading = font.render(self.title, False, prompt_color)
-            scaled = pygame.transform.scale(
-                heading,
-                (heading.get_width() * TEXT_SCALE, heading.get_height() * TEXT_SCALE),
-            )
-            surface.blit(scaled, ((surface.get_width() - scaled.get_width()) // 2, top))
+            heading = self._scaled(font.render(self.title, False, prompt_color))
+            surface.blit(heading, ((surface.get_width() - heading.get_width()) // 2, top))
             top += leading
         for index, line in enumerate(self.visible_lines()):
             if not line:
                 continue
-            stamp = font.render(line, False, color)
-            scaled = pygame.transform.scale(
-                stamp, (stamp.get_width() * TEXT_SCALE, stamp.get_height() * TEXT_SCALE)
-            )
-            surface.blit(scaled, (MARGIN, top + index * leading))
+            stamp = self._scaled(font.render(line, False, color))
+            surface.blit(stamp, (MARGIN, top + index * leading))
+
+        baseline = surface.get_height() - PROMPT_MARGIN
+        skip = self._scaled(font.render(SKIP_PROMPT, False, prompt_color))
+        surface.blit(skip, (surface.get_width() - skip.get_width() - PROMPT_MARGIN, baseline - skip.get_height()))
         if self.phase_finished and int(pygame.time.get_ticks() / BLINK_INTERVAL_MS) % 2:
-            label = font.render(PROMPT, False, prompt_color)
-            scaled = pygame.transform.scale(
-                label, (label.get_width() * TEXT_SCALE, label.get_height() * TEXT_SCALE)
-            )
+            label = self._scaled(font.render(PROMPT, False, prompt_color))
             surface.blit(
-                scaled,
+                label,
                 (
-                    surface.get_width() - scaled.get_width() - PROMPT_MARGIN,
-                    surface.get_height() - scaled.get_height() - PROMPT_MARGIN,
+                    surface.get_width()
+                    - label.get_width()
+                    - PROMPT_MARGIN
+                    - skip.get_width()
+                    - PROMPT_GAP,
+                    baseline - label.get_height(),
                 ),
             )

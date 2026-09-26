@@ -19,6 +19,11 @@ class Flow:
     def level_count(self) -> int:
         return len(LEVELS)
 
+    @property
+    def all_cleared(self) -> bool:
+        """True once every chamber has been cleared, so none is left to enter."""
+        return len(set(self.progress.cleared)) >= self.level_count
+
     def start(self, index: int) -> None:
         self.level_index = max(0, min(index, self.level_count - 1))
         self.chamber = Chamber(level_at(self.level_index))
@@ -34,14 +39,13 @@ class Flow:
         return False
 
     def pending_chapter(self) -> Prologue | None:
-        """The chapter introducing the current chamber, if it has not been seen.
+        """The chapter introducing the current chamber, or None if it has none.
 
-        Returns None for the first chamber, which the prologue introduces, and
-        for any chapter already watched.
+        The first chamber is introduced by the prologue instead. Chapters play
+        on every visit, so a chamber that has been watched already still
+        returns its script.
         """
         if not 1 <= self.level_index < self.level_count:
-            return None
-        if self.progress.has_seen_chapter(self.level_index):
             return None
         return chapter_for(self.level_index)
 

@@ -12,9 +12,11 @@ import src.screens as screens_module
 from main import FONT_PATH, FONT_SIZE, SMALL_FONT_PATH, SMALL_FONT_SIZE
 from src.achievements import ACHIEVEMENTS, Achievement, visible_achievements
 from src.audio import VOLUME_STEPS, Audio
+from src.chapters import Narration
 from src.flow import Flow
 from src.levels import LEVELS
 from src.progression import Progress
+from src.prologue import Prologue
 from src.screens import Screens
 from src.settings import BG_COLOR, EARNED_TILE_COLOR, LOCKED_TILE_COLOR
 from src.states import State
@@ -76,7 +78,8 @@ class ScreensTest(unittest.TestCase):
         self.progress = Progress(Path(self.tmp.name) / "progress.json")
         self.flow = Flow(self.progress)
         self.audio = Audio()
-        self.screens = Screens(self.flow, self.audio)
+        self.narration = Narration(Prologue.from_text("FIRST\n\nSECOND"))
+        self.screens = Screens(self.flow, self.audio, self.narration)
 
     def press(self, state, *keys):
         for key in keys:
@@ -164,15 +167,38 @@ class ScreensTest(unittest.TestCase):
         )
         self.assertEqual(self.flow.level_index, 0)
 
-    def test_unlocked_chamber_starts_immediately_when_prologue_was_seen(self):
+    def test_a_chamber_replays_its_chapter_even_when_the_prologue_was_seen(self):
         self.progress.seen_prologue = True
         self.progress.unlocked = len(LEVELS)
         self.screens.build_level_menu()
         pick(self.screens.levels, LEVELS[1].name)
         self.assertIs(
-            self.press(State.LEVEL_SELECT, pygame.K_RETURN), State.PLAY
+            self.press(State.LEVEL_SELECT, pygame.K_RETURN), State.PROLOGUE
         )
         self.assertEqual(self.flow.level_index, 1)
+        self.assertTrue(self.narration.in_chapter)
+
+    def test_the_main_menu_announces_completion_once_all_chambers_are_cleared(self):
+        for index in range(len(LEVELS)):
+            self.progress.record_clear(index, 10.0, 300.0)
+        self.assertTrue(self.flow.all_cleared)
+        self.canvas.fill(BG_COLOR)
+        self.screens.draw(self.canvas, self.font, State.MENU, self.small_font)
+        band = range(124, 132)
+        lit = any(
+            self.canvas.get_at((x, y))[:3] != BG_COLOR
+            for y in band
+            for x in range(self.canvas.get_width())
+        )
+        self.assertTrue(lit)
+
+    def test_start_is_relabelled_once_everything_is_cleared(self):
+        self.screens.draw(self.canvas, self.font, State.MENU, self.small_font)
+        self.assertEqual(self.screens.main.items[0]["label"], "START")
+        for index in range(len(LEVELS)):
+            self.progress.record_clear(index, 10.0, 300.0)
+        self.screens.draw(self.canvas, self.font, State.MENU, self.small_font)
+        self.assertEqual(self.screens.main.items[0]["label"], "REPLAY CHAMBERS")
 
     def test_first_ever_play_goes_through_the_prologue(self):
         self.assertFalse(self.progress.seen_prologue)

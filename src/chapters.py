@@ -31,7 +31,7 @@ class Narration:
     """Owns whichever script is currently on screen.
 
     The prologue introduces the first chamber; a chapter introduces any later
-    one, and only the first time the player walks into it.
+    one. Scripts play on every visit, so re-entering a chamber replays it.
     """
 
     def __init__(self, prologue: Prologue) -> None:

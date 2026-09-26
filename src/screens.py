@@ -46,9 +46,10 @@ SETTINGS_ITEMS = (
 
 
 class Screens:
-    def __init__(self, flow, audio) -> None:
+    def __init__(self, flow, audio, narration) -> None:
         self.flow = flow
         self.audio = audio
+        self.narration = narration
         self.main = Menu("memLeak", [dict(item) for item in MAIN_ITEMS])
         self.pause = Menu("PAUSED", [dict(item) for item in PAUSE_ITEMS])
         self.settings = Menu("AUDIO SETTINGS", [dict(item) for item in SETTINGS_ITEMS])
@@ -81,10 +82,23 @@ class Screens:
         self.settings.items[1]["value_label"] = self.audio.sfx_label
         self.settings.items[2]["label"] = f"MUTE ALL < {self.audio.mute_label} >"
 
-    def _first_play_state(self) -> State:
-        if self.flow.progress.seen_prologue:
-            return State.PLAY
-        return State.PROLOGUE
+    def _play_state(self) -> State:
+        """Show the chamber's script, or drop straight into play if it has none.
+
+        Scripts play on every visit, so this is the only gate; the saved
+        seen_prologue flag is no longer consulted.
+        """
+        if self.flow.level_index <= 0:
+            self.narration.begin(None)
+            return State.PROLOGUE
+        chapter = self.flow.pending_chapter()
+        self.narration.begin(chapter)
+        return State.PROLOGUE if chapter is not None else State.PLAY
+
+    def _sync_main_labels(self) -> None:
+        self.main.items[0]["label"] = (
+            "REPLAY CHAMBERS" if self.flow.all_cleared else "START"
+        )
 
     def handle_key(self, state: State, key: int) -> State | None:
         if state is State.MENU:
@@ -124,7 +138,7 @@ class Screens:
         action = self.levels.handle_key(key)
         if action and action.startswith("play:"):
             self.flow.start(int(action.split(":")[1]))
-            return self._first_play_state()
+            return self._play_state()
         return State.LEVEL_SELECT
 
     def _handle_pause(self, key: int) -> State:
@@ -173,7 +187,14 @@ class Screens:
 
     def draw(self, canvas, font, state: State, small_font=None) -> None:
         if state is State.MENU:
+            self._sync_main_labels()
             self.main.draw(canvas, font, y=44)
+            if self.flow.all_cleared:
+                self._centered(
+                    canvas,
+                    font.render("ALL CHAMBERS CLEARED", False, DIM_COLOR),
+                    124,
+                )
             self._hint(canvas, font, "ARROWS MOVE   ENTER SELECT")
         elif state is State.LEVEL_SELECT:
             self.levels.draw(canvas, font, y=40)

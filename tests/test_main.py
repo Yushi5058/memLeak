@@ -153,6 +153,71 @@ class MainShellTest(unittest.TestCase):
             self.assertTrue(path.is_file())
             self.assertTrue(Progress(path).seen_prologue)
 
+    def test_s_skips_the_whole_script_straight_into_play(self):
+        self.assertIs(
+            main.handle_key(
+                pygame.K_s, State.PROLOGUE, self.session, self.narration
+            ),
+            State.PLAY,
+        )
+        self.assertTrue(self.prologue.finished)
+
+    def test_s_is_ignored_while_playing(self):
+        before = self.session.earth_alloc
+        self.assertIs(
+            main.handle_key(pygame.K_s, State.PLAY, self.session, self.narration),
+            State.PLAY,
+        )
+        self.assertEqual(self.session.earth_alloc, before)
+
+    def test_skipping_the_prologue_still_records_it_as_seen(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "progress.json"
+            flow = Flow(Progress(path))
+            self.assertIs(
+                main.handle_key(
+                    pygame.K_s, State.PROLOGUE, self.session, self.narration, flow
+                ),
+                State.PLAY,
+            )
+            self.assertTrue(Progress(path).seen_prologue)
+
+    def test_enter_on_a_cleared_chamber_with_a_next_one_advances(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            flow = Flow(Progress(Path(tmp) / "progress.json"))
+            flow.start(0)
+            self.assertFalse(flow.all_cleared)
+            self.assertIs(
+                main.handle_key(
+                    pygame.K_RETURN,
+                    State.CLEARED,
+                    flow.session,
+                    self.narration,
+                    flow,
+                ),
+                State.PROLOGUE,
+            )
+            self.assertEqual(flow.level_index, 1)
+
+    def test_enter_on_the_final_cleared_chamber_returns_to_the_main_menu(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            flow = Flow(Progress(Path(tmp) / "progress.json"))
+            flow.start(flow.level_count - 1)
+            for index in range(flow.level_count):
+                flow.progress.record_clear(index, 10.0, 300.0)
+            self.assertTrue(flow.all_cleared)
+            self.assertFalse(flow.advance())
+            self.assertIs(
+                main.handle_key(
+                    pygame.K_RETURN,
+                    State.CLEARED,
+                    flow.session,
+                    self.narration,
+                    flow,
+                ),
+                State.MENU,
+            )
+
     def test_play_movement_keys_drain_allocation(self):
         before = self.session.earth_alloc
         for key in main.MOVE_KEYS:

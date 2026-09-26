@@ -12,6 +12,7 @@ from src.prologue import (
     MAX_COLUMNS,
     PROLOGUE_PATH,
     PROMPT,
+    PROMPT_MARGIN,
     TEXT_SCALE,
     Prologue,
     parse_phases,
@@ -27,13 +28,15 @@ class PrologueTest(unittest.TestCase):
         self.surface = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
         self.prologue = Prologue.from_file()
 
-    def drawn_columns(self, surface):
+    def drawn_columns(self, surface, y_stop=None):
+        if y_stop is None:
+            y_stop = surface.get_height()
         return [
             x
             for x in range(surface.get_width())
             if any(
                 surface.get_at((x, y))[:3] != BG_COLOR
-                for y in range(surface.get_height())
+                for y in range(y_stop)
             )
         ]
 
@@ -197,13 +200,33 @@ class PrologueTest(unittest.TestCase):
         partial.revealed = float(len(text))
         partial.draw(self.surface, self.font)
         self.assertEqual(partial.visible_lines(), [text])
-        drawn = self.drawn_columns(self.surface)
+        above_prompts = self.surface.get_height() - PROMPT_MARGIN - 24
+        drawn = self.drawn_columns(self.surface, y_stop=above_prompts)
         width = max(drawn) - min(drawn) + 1
         expected = self.font.size(text)[0] * TEXT_SCALE
         self.assertGreaterEqual(width, expected - 3)
         self.assertLessEqual(width, expected)
 
-    def test_prompt_sits_in_the_bottom_right_corner(self):
+    def test_skip_all_lands_on_the_final_phase_fully_revealed(self):
+        self.prologue.skip_all()
+        self.assertEqual(self.prologue.phase_index, self.prologue.phase_count - 1)
+        self.assertTrue(self.prologue.phase_finished)
+        self.assertTrue(self.prologue.finished)
+
+    def test_skip_all_on_an_empty_script_is_harmless(self):
+        empty = Prologue([])
+        empty.skip_all()
+        self.assertEqual(empty.lines, [])
+        self.assertEqual(empty.phase_index, 0)
+        self.assertTrue(empty.finished)
+
+    def test_the_skip_label_is_drawn_even_before_the_phase_finishes(self):
+        self.surface.fill(BG_COLOR)
+        self.assertFalse(self.prologue.phase_finished)
+        self.prologue.draw(self.surface, self.font)
+        self.assertTrue(self.drawn_columns(self.surface))
+
+    def test_the_prompt_sits_in_the_bottom_right_corner(self):
         self.surface.fill(BG_COLOR)
         for _ in range(self.prologue.phase_count):
             self.prologue.advance()
