@@ -36,6 +36,28 @@ class MainShellTest(unittest.TestCase):
         self.session = Session(self.chamber)
         self.prologue = Prologue([["one"], ["two"]])
 
+    def test_every_state_maps_to_a_real_music_track(self):
+        from src.audio import MUSIC_NAMES
+
+        for state in State:
+            self.assertIn(main.MUSIC_FOR_STATE[state], MUSIC_NAMES, state)
+
+    def test_play_states_use_the_game_track(self):
+        for state in (State.PLAY, State.CLEARED, State.GAMEOVER):
+            self.assertEqual(main.MUSIC_FOR_STATE[state], "game", state)
+
+    def test_menus_use_the_menu_track_and_prologue_its_own(self):
+        for state in (
+            State.TITLE,
+            State.MENU,
+            State.LEVEL_SELECT,
+            State.SETTINGS,
+            State.ACHIEVEMENTS,
+            State.PAUSED,
+        ):
+            self.assertEqual(main.MUSIC_FOR_STATE[state], "menu", state)
+        self.assertEqual(main.MUSIC_FOR_STATE[State.PROLOGUE], "prologue")
+
     def test_vendored_font_is_used_when_present(self):
         self.assertTrue(main.FONT_PATH.is_file())
         self.assertEqual(self.font.get_height(), 8)

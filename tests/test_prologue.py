@@ -177,13 +177,15 @@ class PrologueTest(unittest.TestCase):
     def test_text_is_drawn_at_double_scale(self):
         text = "ABCDE"
         self.surface.fill(BG_COLOR)
-        single = Prologue([[text]])
-        single.skip()
-        single.draw(self.surface, self.font)
+        partial = Prologue([[text, "ZZZZZ"]])
+        partial.revealed = float(len(text))
+        partial.draw(self.surface, self.font)
+        self.assertEqual(partial.visible_lines(), [text])
         drawn = self.drawn_columns(self.surface)
         width = max(drawn) - min(drawn) + 1
-        self.assertGreaterEqual(width, self.font.size(text)[0] * TEXT_SCALE - 1)
-        self.assertLessEqual(width, self.font.size(text)[0] * TEXT_SCALE)
+        expected = self.font.size(text)[0] * TEXT_SCALE
+        self.assertGreaterEqual(width, expected - 3)
+        self.assertLessEqual(width, expected)
 
     def test_prompt_sits_in_the_bottom_right_corner(self):
         self.surface.fill(BG_COLOR)

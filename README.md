@@ -23,12 +23,16 @@ python main.py
 
 | Key | Action |
 | --- | --- |
+| `Up` / `Down` | Move the menu selection |
+| `Left` / `Right` | Adjust the selected settings row |
+| `Enter` / `Space` | Confirm, or advance the prologue one phase |
+| `Esc` | Back out of a menu, or pause and resume |
 | `Left` / `A` | Step left (costs 0.5 years) |
 | `Right` / `D` | Step right (costs 0.5 years) |
 | `Space` | Jump (costs 2 years, only when grounded) |
-| `Esc` | Pause and resume |
 | `R` | Retry after winning or running out |
-| `Enter` / `Space` | Advance the title card and prologue |
+
+Every menu is keyboard-only; there is no mouse input.
 
 ## How it plays
 
@@ -45,20 +49,74 @@ hostile whether or not you move. Clearing it banks whatever allocation you
 have left, and the best time and best remaining years persist across
 retries.
 
+## The three chambers
+
+Progress is saved to `~/.memleak/progress.json`, so unlocks, best times,
+best years, achievements, and whether you have seen the prologue all
+survive a restart.
+
+| Chamber | What changes |
+| --- | --- |
+| `OUTER HULL` | The original chamber. Ground movement, one hazard ramp. |
+| `CARGO SPINE` | Faster drain, tighter spawns, the first moving hazard. |
+| `CORE BREACH` | Narrower platforms, faster movers, a much tighter budget. |
+
+`src/levels.py` holds the level table and a geometry validator that
+enforces the physics budgets the player can actually clear, so an
+unreachable jump fails loudly instead of shipping.
+
+## Achievements
+
+Five, awarded the moment you clear a chamber:
+
+| Key | How |
+| --- | --- |
+| `first_steps` | Clear the first chamber |
+| `clean_run` | Clear any chamber without taking a hit |
+| `speedster` | Clear a chamber under its par time |
+| `deep_pocket` | Bank at least 500 years |
+| `completionist` | Clear all three chambers |
+
+## Sprites
+
+The game ships with rectangle placeholders and needs no art to run. Drop
+PNGs into `assets/sprites/` and they are picked up automatically at the
+next launch; anything missing or unreadable falls back per-sprite, so a
+partial set still works.
+
+| File | Canonical size |
+| --- | --- |
+| `player.png` | 24x32 |
+| `hazard.png` | 20x28 |
+| `portal.png` | 28x40 |
+| `platform.png` | 16x16, tiles horizontally |
+| `spike.png` | 8x8, tiles horizontally |
+
+Images may be any size; they are rescaled to the canonical box on load.
+`docs/SPRITES.md` has the full art brief and image prompts.
+
 ## Project layout
 
 ```
 main.py              event pump, state dispatch, rendering
 src/settings.py      every tuning constant and the palette
 src/states.py        the State enum
+src/menu.py          reusable keyboard menu widget
+src/screens.py       main, pause, level select, settings, achievements
+src/levels.py        level table and geometry validator
+src/progression.py   the saved profile on disk
+src/flow.py          start, restart, advance, and win recording
+src/achievements.py  achievement definitions and unlock rules
 src/chamber.py       static level geometry and collision queries
 src/session.py       one run's mutable state and its simulation step
 src/player.py        player physics
-src/hazards.py       falling hazard spawner
-src/audio.py         sound loading, degrades to silence with no device
+src/hazards.py       falling and moving hazards
+src/sprites.py       sprite loading, normalising, rectangle fallback
+src/audio.py         sfx and music playback, degrades to silence
 src/overlay.py       cached CRT scanline and vignette
-src/prologue.py      typewriter reveal of PROLOGUE.txt
+src/prologue.py      phased typewriter reveal of PROLOGUE.txt
 tools/gen_sfx.py     regenerates the sound effects
+tools/gen_music.py   regenerates the chiptune loops
 tests/               unit tests
 ```
 
@@ -69,14 +127,17 @@ so pixels stay square.
 ## Development
 
 ```sh
-python -m unittest discover -s tests -t .   # 69 tests
+python -m unittest discover -s tests -t .   # 201 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
+python tools/gen_music.py                    # regenerate music
 ```
 
-`tools/gen_sfx.py` uses only the standard library and is deterministic, so
-regenerating produces byte-identical files. A test asserts the committed
-WAVs still match a fresh synthesis. The tests set `SDL_VIDEODRIVER` and
+`tools/gen_sfx.py` and `tools/gen_music.py` use only the standard library
+and are deterministic, so regenerating produces byte-identical files. A
+test asserts the committed WAVs still match a fresh synthesis. The music
+generator ends every track on a rest and fades the boundary to silence so
+the loops wrap without a click. The tests set `SDL_VIDEODRIVER` and
 `SDL_AUDIODRIVER` to `dummy`, so they run headless.
 
 ## Third-party assets
@@ -104,8 +165,15 @@ in place.
 
 ### Audio
 
-All sound effects are synthesised from scratch by `tools/gen_sfx.py` and
-carry no third-party rights.
+All sound effects and music are synthesised from scratch by
+`tools/gen_sfx.py` and `tools/gen_music.py` and carry no third-party
+rights.
+
+### Sprites
+
+No sprite art is bundled. The game ships coloured rectangles and only uses
+PNGs you supply in `assets/sprites/`, so any art you drop in is entirely
+yours to license. `docs/SPRITES.md` describes the sizes the loader expects.
 
 ## License
 

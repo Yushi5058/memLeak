@@ -50,6 +50,19 @@ MENU_STATES = (
     State.ACHIEVEMENTS,
 )
 
+MUSIC_FOR_STATE = {
+    State.TITLE: "menu",
+    State.MENU: "menu",
+    State.LEVEL_SELECT: "menu",
+    State.SETTINGS: "menu",
+    State.ACHIEVEMENTS: "menu",
+    State.PAUSED: "menu",
+    State.PROLOGUE: "prologue",
+    State.PLAY: "game",
+    State.CLEARED: "game",
+    State.GAMEOVER: "game",
+}
+
 
 def handle_key(
     key: int,
@@ -200,6 +213,7 @@ def main() -> None:
     state = State.MENU
     running = True
     frame_no = 0
+    current_track = None
 
     while running:
         dt = clock.tick(FPS) / 1000.0
@@ -242,6 +256,11 @@ def main() -> None:
 
         for cue in flow.session.drain_events():
             audio.play(cue)
+
+        track = MUSIC_FOR_STATE.get(state)
+        if track != current_track:
+            current_track = track
+            audio.play_music(track)
 
         render(
             canvas,
