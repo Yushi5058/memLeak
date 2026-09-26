@@ -1,0 +1,45 @@
+# Target Python version
+target-version = "py310"
+
+# Set line length (88 is standard Black/Ruff, 100 gives extra breathing room for math/rects)
+line-length = 100
+
+[lint]
+# Selected rule sets:
+# E / W: pycodestyle errors and warnings
+# F: Pyflakes (catches undefined variables, unused imports, logic errors)
+# I: isort (organizes imports cleanly)
+# UP: pyupgrade (modernizes syntax for your target Python version)
+# B: flake8-bugbear (catches common bugs, mutable default args, etc.)
+select = ["E", "W", "F", "I", "UP", "B"]
+
+# Rules to ignore for faster game dev prototyping:
+ignore = [
+    "E501",   # Ignore line length violations (useful for inline asset/level data arrays)
+    "B008",   # Do not perform function calls in argument defaults
+]
+
+# Allow autofix for all enabled rules (when `--fix` is passed)
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude virtual environments and caches
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[lint.per-file-ignores]
+# Allow unused imports in __init__.py files
+"__init__.py" = ["F401"]
+# Allow wildcard imports or loose conventions in settings/constants if needed
+"src/settings.py" = ["F403", "F405"]
+
+[format]
+# Keep quotes and indentation consistent
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
