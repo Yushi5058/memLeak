@@ -5,6 +5,7 @@ import pygame
 from src.player import Player
 from src.settings import (
     BG_COLOR,
+    DRAIN_RATE,
     DEBUG,
     FPS,
     GROUND_COLOR,
@@ -95,6 +96,10 @@ while running:
                         game_over = True
     # 2. Per-frame simulation (must run every frame, not once per event)
     if not game_over and not won:
+        earth_alloc = max(0.0, earth_alloc - DRAIN_RATE * dt)
+        if earth_alloc <= 0.0:
+            game_over = True
+
         player.handle_input(pygame.key.get_pressed())
         player.update(dt, platforms)
 
