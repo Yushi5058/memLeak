@@ -2,6 +2,7 @@ import sys
 
 import pygame
 
+from src.hazards import FallingHazard, next_interval, next_speed, spawn_x
 from src.player import Player
 from src.settings import (
     BG_COLOR,
@@ -16,6 +17,7 @@ from src.settings import (
     JUMP_COST,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
+    SPAWN_INTERVAL_MAX,
     START_EARTH_YEARS,
     STEP_COST,
     TARGET_COLOR,
@@ -60,6 +62,8 @@ won = False
 elapsed = 0.0
 best_time = 0.0
 best_saved = 0.0
+falling: list[FallingHazard] = []
+spawn_timer = SPAWN_INTERVAL_MAX
 
 running = True
 frame_no = 0
@@ -84,6 +88,8 @@ while running:
                 game_over = False
                 won = False
                 elapsed = 0.0
+                falling.clear()
+                spawn_timer = SPAWN_INTERVAL_MAX
             # Gameplay actions (only if still active)
             elif not game_over and not won:
                 # Discrete move : left / right press
@@ -108,16 +114,33 @@ while running:
         player.handle_input(pygame.key.get_pressed())
         player.update(dt, platforms)
 
+        spawn_timer -= dt
+        if spawn_timer <= 0.0:
+            spawn_timer = next_interval(elapsed)
+            falling.append(FallingHazard(spawn_x(player.rect.x), next_speed(elapsed)))
+        for hz in falling:
+            hz.update(dt)
+        falling = [hz for hz in falling if not hz.is_spent()]
+
         # Check Hazard collisions
+        struck = False
         for h in hazards:
             if player.rect.colliderect(h):
-                earth_alloc -= HAZARD_PENALTY
-                # Respawn player at start of chamber
-                player = Player(SPAWN_X, SPAWN_Y)
-                if earth_alloc <= 0:
-                    earth_alloc = 0
-                    game_over = True
+                struck = True
                 break
+        if not struck:
+            for i, hz in enumerate(falling):
+                if player.rect.colliderect(hz.rect):
+                    del falling[i]
+                    struck = True
+                    break
+        if struck:
+            earth_alloc -= HAZARD_PENALTY
+            # Respawn player at start of chamber
+            player = Player(SPAWN_X, SPAWN_Y)
+            if earth_alloc <= 0:
+                earth_alloc = 0
+                game_over = True
 
         # Check Target collision
         if player.rect.colliderect(target):
@@ -136,6 +159,8 @@ while running:
     # Draw Hazards
     for h in hazards:
         pygame.draw.rect(canvas, HAZARD_COLOR, h)
+    for hz in falling:
+        hz.draw(canvas)
 
     # Draw Target Portal
     pygame.draw.rect(canvas, TARGET_COLOR, target)

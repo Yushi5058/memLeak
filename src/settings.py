@@ -25,6 +25,15 @@ START_EARTH_YEARS = 500.0  # Starting allocation
 DRAIN_RATE = 15.0  # Earth years lost per real second
 HAZARD_PENALTY = 50.0  # Penalty on hazard hit
 
+# Falling hazard spawner
+FALLING_HAZARD_WIDTH = 10
+FALLING_HAZARD_HEIGHT = 14
+FALLING_HAZARD_SPEED_MIN = 70.0  # px/sec at chamber start
+FALLING_HAZARD_SPEED_MAX = 190.0  # px/sec once fully ramped
+SPAWN_INTERVAL_MAX = 2.5  # seconds between spawns at chamber start
+SPAWN_INTERVAL_MIN = 0.8  # seconds between spawns once fully ramped
+RAMP_SECONDS = 60.0  # seconds to reach the hardest spawn rate
+
 # Time cost per discrete action
 STEP_COST = 0.5  # Drained once whenever a direction key is pressed
 JUMP_COST = 2.0  # Drained once when jump is pressed
