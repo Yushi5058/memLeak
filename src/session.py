@@ -21,6 +21,7 @@ class Session:
         self.best_saved = 0.0
         self.game_over = False
         self.won = False
+        self.hits = 0
         self.spawn_timer = self.chamber.spawn_profile.interval_max
 
     def reset(self) -> None:
@@ -32,6 +33,7 @@ class Session:
         self.elapsed = 0.0
         self.game_over = False
         self.won = False
+        self.hits = 0
         self.spawn_timer = self.chamber.spawn_profile.interval_max
 
     def press_jump(self) -> bool:
@@ -92,6 +94,7 @@ class Session:
 
         if self.chamber.hits_hazard(self.player.rect) or self._pop_struck_hazard():
             self.earth_alloc -= HAZARD_PENALTY
+            self.hits += 1
             self.events.append("hazard")
             self.player = Player(*self.chamber.spawn_point)
             if self.earth_alloc <= 0:

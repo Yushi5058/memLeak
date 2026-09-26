@@ -8,3 +8,7 @@ class State(Enum):
     PAUSED = auto()
     CLEARED = auto()
     GAMEOVER = auto()
+    MENU = auto()
+    LEVEL_SELECT = auto()
+    SETTINGS = auto()
+    ACHIEVEMENTS = auto()

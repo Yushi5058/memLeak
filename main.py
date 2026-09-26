@@ -7,6 +7,7 @@ from src.flow import Flow
 from src.overlay import CrtOverlay
 from src.progression import Progress
 from src.prologue import Prologue
+from src.screens import Screens
 from src.session import Session
 from src.settings import (
     BG_COLOR,
@@ -42,12 +43,21 @@ def load_font() -> pygame.font.Font:
     return pygame.font.SysFont("monospace", FONT_SIZE, bold=True)
 
 
+MENU_STATES = (
+    State.MENU,
+    State.LEVEL_SELECT,
+    State.SETTINGS,
+    State.ACHIEVEMENTS,
+)
+
+
 def handle_key(
     key: int,
     state: State,
     session: Session,
     prologue: Prologue,
     flow: Flow | None = None,
+    screens=None,
 ) -> State:
     if state is State.TITLE:
         if key in CONFIRM_KEYS:
@@ -66,6 +76,9 @@ def handle_key(
         elif key == pygame.K_ESCAPE:
             return State.PAUSED
     elif state is State.PAUSED:
+        if screens is not None:
+            result = screens.handle_key(state, key)
+            return result if result is not None else state
         if key == pygame.K_ESCAPE:
             return State.PLAY
     elif state in (State.CLEARED, State.GAMEOVER):
@@ -98,7 +111,9 @@ def draw_title(canvas, font) -> None:
         draw_centered(canvas, font, TITLE_PROMPT, 108, TEXT_COLOR)
 
 
-def render_world(canvas, chamber, session, state, font, sprites=None, flow=None) -> None:
+def render_world(
+    canvas, chamber, session, state, font, sprites=None, flow=None, screens=None
+) -> None:
     chamber.draw(canvas, session.falling, sprites)
     session.player.draw(canvas, sprites)
 
@@ -111,7 +126,10 @@ def render_world(canvas, chamber, session, state, font, sprites=None, flow=None)
     canvas.blit(font.render(chamber.level.name, False, TARGET_COLOR), (4, 13))
 
     if state is State.PAUSED:
-        draw_centered(canvas, font, "PAUSED [ESC to resume]", 70, TEXT_COLOR)
+        if screens is not None:
+            screens.pause.draw(canvas, font, y=52)
+        else:
+            draw_centered(canvas, font, "PAUSED [ESC to resume]", 70, TEXT_COLOR)
     elif state is State.GAMEOVER:
         draw_centered(canvas, font, "TIMELINE HALTED [R to retry]", 70, HAZARD_COLOR)
     elif state is State.CLEARED:
@@ -143,15 +161,25 @@ def render_world(canvas, chamber, session, state, font, sprites=None, flow=None)
 
 
 def render(
-    canvas, chamber, session, state, font, prologue, sprites=None, flow=None
+    canvas,
+    chamber,
+    session,
+    state,
+    font,
+    prologue,
+    sprites=None,
+    flow=None,
+    screens=None,
 ) -> None:
     canvas.fill(BG_COLOR)
     if state is State.TITLE:
         draw_title(canvas, font)
     elif state is State.PROLOGUE:
         prologue.draw(canvas, font)
+    elif state in MENU_STATES and screens is not None:
+        screens.draw(canvas, font, state)
     else:
-        render_world(canvas, chamber, session, state, font, sprites, flow)
+        render_world(canvas, chamber, session, state, font, sprites, flow, screens)
 
 
 def main() -> None:
@@ -166,9 +194,10 @@ def main() -> None:
     flow = Flow(Progress())
     prologue = Prologue.from_file()
     audio = Audio()
+    screens = Screens(flow, audio)
     sprites = Sprites()
     overlay = CrtOverlay(INTERNAL_WIDTH, INTERNAL_HEIGHT)
-    state = State.TITLE
+    state = State.MENU
     running = True
     frame_no = 0
 
@@ -187,7 +216,16 @@ def main() -> None:
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
-                state = handle_key(event.key, state, flow.session, prologue, flow)
+                if state in MENU_STATES:
+                    result = screens.handle_key(state, event.key)
+                    if result is None:
+                        running = False
+                    else:
+                        state = result
+                else:
+                    state = handle_key(
+                        event.key, state, flow.session, prologue, flow, screens
+                    )
 
         if state is State.PROLOGUE:
             prologue.update(dt)
@@ -211,6 +249,7 @@ def main() -> None:
             prologue,
             sprites,
             flow,
+            screens,
         )
         overlay.draw(canvas)
         window.blit(pygame.transform.scale(canvas, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))

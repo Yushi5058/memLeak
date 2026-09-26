@@ -22,6 +22,7 @@ PLAYER_COLOR = (50, 205, 50)  # Terminal neon green
 HAZARD_COLOR = (230, 40, 60)  # Glitch red
 TARGET_COLOR = (80, 220, 240)  # Anomaly cyan
 TEXT_COLOR = (240, 240, 240)
+DIM_COLOR = (104, 104, 124)  # Locked or unavailable menu entries
 START_EARTH_YEARS = 900.0  # Starting allocation
 DRAIN_RATE = 8.0  # Earth years lost per real second
 HAZARD_PENALTY = 50.0  # Penalty on hazard hit

@@ -1,3 +1,4 @@
+from src.achievements import earned_on_clear
 from src.chamber import Chamber
 from src.levels import LEVELS, level_at
 from src.progression import Progress
@@ -10,6 +11,7 @@ class Flow:
         self.level_index = 0
         self.chamber: Chamber = Chamber(level_at(0))
         self.session: Session = Session(self.chamber)
+        self.unlocked_awards: list[str] = []
 
     @property
     def level_count(self) -> int:
@@ -30,6 +32,19 @@ class Flow:
         return False
 
     def record_win(self) -> None:
+        session = self.session
+        level = self.chamber.level
+        already_cleared = self.progress.has_cleared(self.level_index)
         self.progress.record_clear(
-            self.level_index, self.session.elapsed, self.session.earth_alloc
+            self.level_index, session.elapsed, session.earth_alloc
         )
+        for key in earned_on_clear(
+            level,
+            session.elapsed,
+            session.earth_alloc,
+            session.hits,
+            already_cleared,
+            len(self.progress.cleared),
+        ):
+            if self.progress.unlock_achievement(key):
+                self.unlocked_awards.append(key)

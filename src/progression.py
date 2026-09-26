@@ -41,6 +41,7 @@ class Progress:
         self.best_time: dict[int, float] = {}
         self.best_years: dict[int, float] = {}
         self.achievements: list[str] = []
+        self.seen_prologue = False
         self.load()
 
     def load(self) -> None:
@@ -63,6 +64,7 @@ class Progress:
             self.achievements = [str(a) for a in achievements]
         else:
             self.achievements = []
+        self.seen_prologue = bool(raw.get("seen_prologue", False))
 
     def save(self) -> None:
         payload = {
@@ -72,6 +74,7 @@ class Progress:
             "best_time": {str(k): v for k, v in self.best_time.items()},
             "best_years": {str(k): v for k, v in self.best_years.items()},
             "achievements": sorted(set(self.achievements)),
+            "seen_prologue": self.seen_prologue,
         }
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
