@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 import pygame
 
@@ -6,8 +7,8 @@ from src.hazards import FallingHazard, next_interval, next_speed, spawn_x
 from src.player import Player
 from src.settings import (
     BG_COLOR,
-    DRAIN_RATE,
     DEBUG,
+    DRAIN_RATE,
     FPS,
     GROUND_COLOR,
     HAZARD_COLOR,
@@ -31,7 +32,13 @@ pygame.display.set_caption("memLeak")
 
 canvas = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
 clock = pygame.time.Clock()
-font = pygame.font.SysFont("monospace", 8, bold=True)
+FONT_PATH = Path(__file__).parent / "assets" / "fonts" / "Px437_IBM_EGA_8x8.ttf"
+# 8px is the 1:1 design size of the 8x8 font; other sizes break pixel crispness.
+font = (
+    pygame.font.Font(str(FONT_PATH), 8)
+    if FONT_PATH.is_file()
+    else pygame.font.SysFont("monospace", 8, bold=True)
+)
 
 # Spawn point
 SPAWN_X, SPAWN_Y = 20.0, 130.0
@@ -175,7 +182,7 @@ while running:
 
     # Win / Loss overlays
     if game_over:
-        msg = font.render("KERNEL PANIC: TIMELINE HALTED [R to retry]", False, HAZARD_COLOR)
+        msg = font.render("TIMELINE HALTED [R to retry]", False, HAZARD_COLOR)
         canvas.blit(msg, (INTERNAL_WIDTH // 2 - msg.get_width() // 2, 70))
     elif won:
         msg = font.render(f"CLEARED IN {elapsed:.2f}s  SAVED {int(earth_alloc)} YRS", False, TARGET_COLOR)
