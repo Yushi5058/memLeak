@@ -207,6 +207,37 @@ class ScreensTest(unittest.TestCase):
         after = sum("LOCKED" in i["label"] for i in self.screens.levels.visible())
         self.assertEqual(after, before - 1)
 
+    def test_settings_changes_are_written_to_the_save_file(self):
+        self.open_settings_item(State.SETTINGS, "MUTE ALL")
+        self.progress = Progress(Path(self.tmp.name) / "progress.json")
+        self.assertTrue(self.progress.muted)
+
+    def test_volume_changes_persist_and_reload(self):
+        pick(self.screens.settings, "MUSIC")
+        self.press(State.SETTINGS, pygame.K_LEFT)
+        expected = self.audio.music_volume
+        self.assertEqual(
+            Progress(Path(self.tmp.name) / "progress.json").music_volume, expected
+        )
+
+    def test_leaving_the_settings_row_never_saves(self):
+        before = self.progress.music_volume
+        self.press(State.SETTINGS, pygame.K_UP, pygame.K_UP)
+        self.assertEqual(self.progress.music_volume, before)
+
+    def test_boot_applies_saved_audio_settings(self):
+        progress = Progress(Path(self.tmp.name) / "progress.json")
+        progress.set_audio_settings(1, 2, True)
+        restored = Progress(Path(self.tmp.name) / "progress.json")
+        audio = Audio()
+        audio.music_volume = restored.music_volume
+        audio.sfx_volume = restored.sfx_volume
+        audio.muted = restored.muted
+        audio.apply_volumes()
+        self.assertEqual(audio.music_volume, 1)
+        self.assertEqual(audio.sfx_volume, 2)
+        self.assertTrue(audio.muted)
+
     def test_best_time_is_shown_once_a_chamber_is_cleared(self):
         self.progress.record_clear(0, 12.25, 500.0)
         self.screens.build_level_menu()

@@ -119,12 +119,20 @@ class Screens:
             return State.MENU
         return State.PAUSED
 
+    def _persist_audio(self) -> None:
+        self.flow.progress.set_audio_settings(
+            self.audio.music_volume, self.audio.sfx_volume, self.audio.muted
+        )
+
     def _adjust_selected(self, delta: int) -> None:
         item = self.settings.current() or {}
         if item.get("action") == "music":
             self.audio.adjust_music(delta)
         elif item.get("action") == "sfx":
             self.audio.adjust_sfx(delta)
+        else:
+            return
+        self._persist_audio()
 
     def _handle_settings(self, key: int) -> State:
         if key in BACK_KEYS:
@@ -136,6 +144,7 @@ class Screens:
         action = self.settings.handle_key(key)
         if action == "mute":
             self.audio.toggle_mute()
+            self._persist_audio()
         elif action == "back":
             return self.settings_origin
         self._sync_settings_labels()

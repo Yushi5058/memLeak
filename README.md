@@ -52,8 +52,8 @@ retries.
 ## The three chambers
 
 Progress is saved to `~/.memleak/progress.json`, so unlocks, best times,
-best years, achievements, and whether you have seen the prologue all
-survive a restart.
+best years, achievements, whether you have seen the prologue, and your
+audio volume and mute choice all survive a restart.
 
 | Chamber | What changes |
 | --- | --- |

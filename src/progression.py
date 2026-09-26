@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from src.levels import LEVELS
+from src.settings import VOLUME_STEPS
 
 SAVE_VERSION = 1
 DEFAULT_PATH = Path.home() / ".memleak" / "progress.json"
@@ -33,6 +34,10 @@ def _int_keyed_floats(raw) -> dict[int, float]:
     return parsed
 
 
+def _as_volume(value) -> int:
+    return max(0, min(VOLUME_STEPS, _as_int(value, VOLUME_STEPS)))
+
+
 class Progress:
     def __init__(self, path: Path | None = None) -> None:
         self.path = Path(path) if path is not None else DEFAULT_PATH
@@ -42,6 +47,9 @@ class Progress:
         self.best_years: dict[int, float] = {}
         self.achievements: list[str] = []
         self.seen_prologue = False
+        self.music_volume = VOLUME_STEPS
+        self.sfx_volume = VOLUME_STEPS
+        self.muted = False
         self.load()
 
     def load(self) -> None:
@@ -65,6 +73,9 @@ class Progress:
         else:
             self.achievements = []
         self.seen_prologue = bool(raw.get("seen_prologue", False))
+        self.music_volume = _as_volume(raw.get("music_volume", VOLUME_STEPS))
+        self.sfx_volume = _as_volume(raw.get("sfx_volume", VOLUME_STEPS))
+        self.muted = bool(raw.get("muted", False))
 
     def save(self) -> None:
         payload = {
@@ -75,6 +86,9 @@ class Progress:
             "best_years": {str(k): v for k, v in self.best_years.items()},
             "achievements": sorted(set(self.achievements)),
             "seen_prologue": self.seen_prologue,
+            "music_volume": self.music_volume,
+            "sfx_volume": self.sfx_volume,
+            "muted": self.muted,
         }
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,6 +119,12 @@ class Progress:
 
     def has_achievement(self, name: str) -> bool:
         return name in self.achievements
+
+    def set_audio_settings(self, music: int, sfx: int, muted: bool) -> None:
+        self.music_volume = _as_volume(music)
+        self.sfx_volume = _as_volume(sfx)
+        self.muted = bool(muted)
+        self.save()
 
     def unlock_achievement(self, name: str) -> bool:
         if name in self.achievements:

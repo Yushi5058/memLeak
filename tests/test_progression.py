@@ -10,6 +10,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 from src.flow import Flow
 from src.levels import LEVELS
 from src.progression import Progress
+from src.settings import VOLUME_STEPS
 
 
 class ProgressTest(unittest.TestCase):
@@ -105,6 +106,50 @@ class ProgressTest(unittest.TestCase):
         progress.record_clear(0, 10.0, 50.0)
         siblings = list(self.path.parent.iterdir())
         self.assertEqual([p.name for p in siblings], ["progress.json"])
+
+
+    def test_audio_settings_start_full_and_unmuted(self):
+        progress = self.fresh()
+        self.assertEqual(progress.music_volume, VOLUME_STEPS)
+        self.assertEqual(progress.sfx_volume, VOLUME_STEPS)
+        self.assertFalse(progress.muted)
+
+    def test_audio_settings_survive_a_reload(self):
+        progress = self.fresh()
+        progress.set_audio_settings(2, 4, True)
+        reloaded = self.fresh()
+        self.assertEqual(reloaded.music_volume, 2)
+        self.assertEqual(reloaded.sfx_volume, 4)
+        self.assertTrue(reloaded.muted)
+
+    def test_set_audio_settings_clamps_out_of_range_values(self):
+        progress = self.fresh()
+        progress.set_audio_settings(99, -4, False)
+        self.assertEqual(progress.music_volume, VOLUME_STEPS)
+        self.assertEqual(progress.sfx_volume, 0)
+        self.assertEqual(self.fresh().music_volume, VOLUME_STEPS)
+        self.assertEqual(self.fresh().sfx_volume, 0)
+
+    def test_non_numeric_audio_values_fall_back_to_defaults(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(
+            json.dumps(
+                {"music_volume": "loud", "sfx_volume": None, "muted": "yes"}
+            )
+        )
+        progress = self.fresh()
+        self.assertEqual(progress.music_volume, VOLUME_STEPS)
+        self.assertEqual(progress.sfx_volume, VOLUME_STEPS)
+        self.assertTrue(progress.muted)
+
+    def test_audio_settings_survive_alongside_progress(self):
+        progress = self.fresh()
+        progress.set_audio_settings(1, 1, True)
+        progress.record_clear(0, 9.0, 400.0)
+        reloaded = self.fresh()
+        self.assertEqual(reloaded.music_volume, 1)
+        self.assertTrue(reloaded.muted)
+        self.assertTrue(reloaded.has_cleared(0))
 
 
 class FlowTest(unittest.TestCase):

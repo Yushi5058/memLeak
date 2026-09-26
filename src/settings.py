@@ -36,6 +36,9 @@ SPAWN_INTERVAL_MAX = 2.5  # seconds between spawns at chamber start
 SPAWN_INTERVAL_MIN = 0.8  # seconds between spawns once fully ramped
 RAMP_SECONDS = 60.0  # seconds to reach the hardest spawn rate
 
+# Audio
+VOLUME_STEPS = 5
+
 # Time cost per discrete action
 STEP_COST = 0.5  # Drained once whenever a direction key is pressed
 JUMP_COST = 2.0  # Drained once when jump is pressed

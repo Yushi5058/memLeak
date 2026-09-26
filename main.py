@@ -207,6 +207,10 @@ def main() -> None:
     flow = Flow(Progress())
     prologue = Prologue.from_file()
     audio = Audio()
+    audio.music_volume = flow.progress.music_volume
+    audio.sfx_volume = flow.progress.sfx_volume
+    audio.muted = flow.progress.muted
+    audio.apply_volumes()
     screens = Screens(flow, audio)
     sprites = Sprites()
     overlay = CrtOverlay(INTERNAL_WIDTH, INTERNAL_HEIGHT)

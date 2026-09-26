@@ -2,12 +2,13 @@ from pathlib import Path
 
 import pygame
 
+from src.settings import VOLUME_STEPS
+
 DEFAULT_SOUNDS_DIR = Path(__file__).resolve().parent.parent / "assets" / "sounds"
 DEFAULT_MUSIC_DIR = Path(__file__).resolve().parent.parent / "assets" / "music"
 SOUND_NAMES = ("jump", "land", "hazard", "portal", "ui")
 MUSIC_NAMES = ("menu", "prologue", "game")
 MIXER_FORMAT = {"frequency": 22050, "size": -16, "channels": 1, "buffer": 512}
-VOLUME_STEPS = 5
 
 
 class Audio:
@@ -62,6 +63,10 @@ class Audio:
             pygame.mixer.music.set_volume(level)
         except pygame.error:
             pass
+
+    def apply_volumes(self) -> None:
+        self._apply_sfx_volume()
+        self._apply_music_volume()
 
     def play_music(self, name: str) -> None:
         if pygame.mixer.get_init() is None:
