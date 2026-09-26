@@ -69,9 +69,7 @@ class Progress:
             self.cleared = []
         clean_clears = raw.get("clean_clears", [])
         if isinstance(clean_clears, list):
-            self.clean_clears = [
-                i for i in (_as_int(v, -1) for v in clean_clears) if i >= 0
-            ]
+            self.clean_clears = [i for i in (_as_int(v, -1) for v in clean_clears) if i >= 0]
         else:
             self.clean_clears = []
         self.best_time = _int_keyed_floats(raw.get("best_time"))

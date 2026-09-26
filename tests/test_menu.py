@@ -124,9 +124,7 @@ class AchievementTest(unittest.TestCase):
 
     def test_a_perfect_first_clear_earns_four(self):
         keys = earned_on_clear(LEVEL_ONE, 10.0, 600.0, 0, False, 1)
-        self.assertEqual(
-            keys, ["first_steps", "clean_run", "speedster", "deep_pocket"]
-        )
+        self.assertEqual(keys, ["first_steps", "clean_run", "speedster", "deep_pocket"])
 
     def test_being_hit_blocks_clean_run(self):
         keys = earned_on_clear(LEVEL_ONE, 10.0, 600.0, 1, False, 1)

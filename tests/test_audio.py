@@ -24,18 +24,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def load_generator():
-    spec = importlib.util.spec_from_file_location(
-        "gen_sfx", REPO_ROOT / "tools" / "gen_sfx.py"
-    )
+    spec = importlib.util.spec_from_file_location("gen_sfx", REPO_ROOT / "tools" / "gen_sfx.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
 def load_music_generator():
-    spec = importlib.util.spec_from_file_location(
-        "gen_music", REPO_ROOT / "tools" / "gen_music.py"
-    )
+    spec = importlib.util.spec_from_file_location("gen_music", REPO_ROOT / "tools" / "gen_music.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -65,9 +61,7 @@ class AudioTest(unittest.TestCase):
             peak = max(max(samples), -min(samples))
             self.assertGreater(peak, 2000, f"{name} is effectively silent")
             self.assertLess(peak, 32767, f"{name} is clipping")
-            self.assertFalse(
-                any(v <= -32768 or v >= 32767 for v in samples), f"{name} wrapped"
-            )
+            self.assertFalse(any(v <= -32768 or v >= 32767 for v in samples), f"{name} wrapped")
 
     def test_committed_files_match_a_fresh_synthesis(self):
         gen = load_generator()
@@ -120,9 +114,7 @@ class MusicTest(unittest.TestCase):
             peak = max(max(samples), -min(samples))
             self.assertGreater(peak, 8000, f"{name} is effectively silent")
             self.assertLess(peak, 32767, f"{name} is clipping")
-            self.assertFalse(
-                any(v <= -32768 or v >= 32767 for v in samples), f"{name} wrapped"
-            )
+            self.assertFalse(any(v <= -32768 or v >= 32767 for v in samples), f"{name} wrapped")
 
     def test_music_loops_start_and_end_at_silence(self):
         for name in MUSIC_NAMES:

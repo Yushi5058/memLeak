@@ -83,9 +83,7 @@ class LevelCatalogueTest(unittest.TestCase):
     def test_there_are_three_levels_with_unique_indices(self):
         self.assertEqual(len(LEVELS), 3)
         self.assertEqual([lvl.index for lvl in LEVELS], [0, 1, 2])
-        self.assertEqual(
-            [lvl.name for lvl in LEVELS], ["OUTER HULL", "CARGO SPINE", "CORE BREACH"]
-        )
+        self.assertEqual([lvl.name for lvl in LEVELS], ["OUTER HULL", "CARGO SPINE", "CORE BREACH"])
 
     def test_every_level_is_playable(self):
         self.assertEqual(validate_all(), [])
@@ -98,9 +96,7 @@ class LevelCatalogueTest(unittest.TestCase):
         for earlier, later in zip(LEVELS, LEVELS[1:], strict=False):
             self.assertGreaterEqual(later.drain_rate, earlier.drain_rate)
             self.assertLessEqual(later.spawn.ramp_seconds, earlier.spawn.ramp_seconds)
-            self.assertLessEqual(
-                later.spawn.interval_min, earlier.spawn.interval_min
-            )
+            self.assertLessEqual(later.spawn.interval_min, earlier.spawn.interval_min)
         self.assertGreaterEqual(LEVEL_THREE.drain_rate, LEVEL_TWO.drain_rate)
         self.assertGreaterEqual(LEVEL_TWO.drain_rate, LEVEL_ONE.drain_rate)
 
@@ -183,9 +179,7 @@ class CargoSpineTraversalTest(unittest.TestCase):
         Without this, a broken sweep would make the test above pass vacuously.
         """
         _, _, _, third, fourth = LEVEL_TWO.platforms
-        broken = replace(
-            LEVEL_TWO, hazards=LEVEL_TWO.hazards[:3] + ((192, 46, 10, 44),)
-        )
+        broken = replace(LEVEL_TWO, hazards=LEVEL_TWO.hazards[:3] + ((192, 46, 10, 44),))
         self.assertFalse(hop_is_feasible(broken, third, fourth))
 
 
@@ -243,9 +237,7 @@ class ChamberPerLevelTest(unittest.TestCase):
         self.assertEqual(len(chamber.movers), len(LEVEL_THREE.movers))
 
     def test_session_uses_the_levels_drain_rate_and_starting_years(self):
-        custom = replace(
-            LEVEL_ONE, hazards=(), movers=(), drain_rate=100.0, start_years=500.0
-        )
+        custom = replace(LEVEL_ONE, hazards=(), movers=(), drain_rate=100.0, start_years=500.0)
         session = Session(Chamber(custom))
         self.assertEqual(session.earth_alloc, 500.0)
         session.step(0.05, NO_KEYS)
@@ -329,7 +321,8 @@ class CoreBreachTraversalTest(unittest.TestCase):
         """Guards the guard: the clear floor check must be able to fail."""
         broken = replace(
             LEVEL_THREE,
-            hazards=((44, 155, 30, 5), (96, 111, 34, 5), (150, 89, 34, 5)) + LEVEL_THREE.hazards[3:],
+            hazards=((44, 155, 30, 5), (96, 111, 34, 5), (150, 89, 34, 5))
+            + LEVEL_THREE.hazards[3:],
         )
         problems = validate_level(broken)
         self.assertTrue(

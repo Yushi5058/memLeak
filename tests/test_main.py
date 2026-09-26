@@ -43,9 +43,7 @@ class MainShellTest(unittest.TestCase):
         original_render = main.render
         with tempfile.TemporaryDirectory() as tmp:
             main.Progress = lambda: Progress(Path(tmp) / "progress.json")
-            main.render = (
-                lambda canvas, chamber, session, state, *rest: recorded.append(state)
-            )
+            main.render = lambda canvas, chamber, session, state, *rest: recorded.append(state)
             try:
                 pygame.event.post(pygame.event.Event(pygame.QUIT))
                 main.main()
@@ -117,9 +115,7 @@ class MainShellTest(unittest.TestCase):
     def test_prologue_key_completes_the_current_phase_first(self):
         self.assertFalse(self.prologue.phase_finished)
         self.assertIs(
-            main.handle_key(
-                pygame.K_RETURN, State.PROLOGUE, self.session, self.narration
-            ),
+            main.handle_key(pygame.K_RETURN, State.PROLOGUE, self.session, self.narration),
             State.PROLOGUE,
         )
         self.assertTrue(self.prologue.phase_finished)
@@ -128,9 +124,7 @@ class MainShellTest(unittest.TestCase):
     def test_prologue_confirm_walks_every_phase_then_starts_play(self):
         state = State.PROLOGUE
         for _ in range(self.prologue.phase_count * 2):
-            state = main.handle_key(
-                pygame.K_RETURN, State.PROLOGUE, self.session, self.narration
-            )
+            state = main.handle_key(pygame.K_RETURN, State.PROLOGUE, self.session, self.narration)
         self.assertIs(state, State.PLAY)
         self.assertTrue(self.prologue.finished)
 
@@ -155,9 +149,7 @@ class MainShellTest(unittest.TestCase):
 
     def test_s_skips_the_whole_script_straight_into_play(self):
         self.assertIs(
-            main.handle_key(
-                pygame.K_s, State.PROLOGUE, self.session, self.narration
-            ),
+            main.handle_key(pygame.K_s, State.PROLOGUE, self.session, self.narration),
             State.PLAY,
         )
         self.assertTrue(self.prologue.finished)
@@ -175,9 +167,7 @@ class MainShellTest(unittest.TestCase):
             path = Path(tmp) / "progress.json"
             flow = Flow(Progress(path))
             self.assertIs(
-                main.handle_key(
-                    pygame.K_s, State.PROLOGUE, self.session, self.narration, flow
-                ),
+                main.handle_key(pygame.K_s, State.PROLOGUE, self.session, self.narration, flow),
                 State.PLAY,
             )
             self.assertTrue(Progress(path).seen_prologue)

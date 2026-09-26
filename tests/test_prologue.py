@@ -38,10 +38,7 @@ class PrologueTest(unittest.TestCase):
         return [
             x
             for x in range(surface.get_width())
-            if any(
-                surface.get_at((x, y))[:3] != BG_COLOR
-                for y in range(y_stop)
-            )
+            if any(surface.get_at((x, y))[:3] != BG_COLOR for y in range(y_stop))
         ]
 
     def prompt_band_runs(self, script):
@@ -103,9 +100,7 @@ class PrologueTest(unittest.TestCase):
             self.assertLessEqual(len(phase) * leading, INTERNAL_HEIGHT, phase)
 
     def test_phases_are_wrapped_at_the_margin_width(self):
-        widest = max(
-            len(line) for phase in self.prologue.phases for line in phase
-        )
+        widest = max(len(line) for phase in self.prologue.phases for line in phase)
         self.assertEqual(widest, MAX_COLUMNS)
 
     def test_widest_line_fits_between_the_side_margins(self):
@@ -114,9 +109,7 @@ class PrologueTest(unittest.TestCase):
 
     def test_reading_pace_is_human_rather_than_mashing(self):
         self.assertEqual(CHARS_PER_SECOND, 22.0)
-        chars = sum(
-            len(line) for phase in self.prologue.phases for line in phase
-        )
+        chars = sum(len(line) for phase in self.prologue.phases for line in phase)
         seconds = chars / CHARS_PER_SECOND
         self.assertGreater(seconds, 8.0)
         self.assertLess(seconds, 30.0)
@@ -211,9 +204,7 @@ class PrologueTest(unittest.TestCase):
         self.assertEqual(parse_phases("only\n\n"), [["only"]])
 
     def test_shipped_text_parses_into_the_expected_phase_count(self):
-        self.assertEqual(
-            len(parse_phases(PROLOGUE_PATH.read_text(encoding="utf-8"))), 6
-        )
+        self.assertEqual(len(parse_phases(PROLOGUE_PATH.read_text(encoding="utf-8"))), 6)
 
     def test_text_is_drawn_inside_the_left_margin(self):
         self.surface.fill(BG_COLOR)
@@ -294,12 +285,8 @@ class PrologueTest(unittest.TestCase):
         done.skip_all()
         edge = self.skip_x()
         with patch("pygame.time.get_ticks", return_value=BLINK_INTERVAL_MS):
-            before = [
-                start for start, _ in self.prompt_band_runs(typing) if start >= edge
-            ]
-            after = [
-                start for start, _ in self.prompt_band_runs(done) if start >= edge
-            ]
+            before = [start for start, _ in self.prompt_band_runs(typing) if start >= edge]
+            after = [start for start, _ in self.prompt_band_runs(done) if start >= edge]
         self.assertEqual(before, after)
 
     def test_draw_does_not_crash_at_any_stage(self):

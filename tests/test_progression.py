@@ -119,7 +119,6 @@ class ProgressTest(unittest.TestCase):
         siblings = list(self.path.parent.iterdir())
         self.assertEqual([p.name for p in siblings], ["progress.json"])
 
-
     def test_audio_settings_start_full_and_unmuted(self):
         progress = self.fresh()
         self.assertEqual(progress.music_volume, VOLUME_STEPS)
@@ -145,9 +144,7 @@ class ProgressTest(unittest.TestCase):
     def test_non_numeric_audio_values_fall_back_to_defaults(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(
-            json.dumps(
-                {"music_volume": "loud", "sfx_volume": None, "muted": "yes"}
-            )
+            json.dumps({"music_volume": "loud", "sfx_volume": None, "muted": "yes"})
         )
         progress = self.fresh()
         self.assertEqual(progress.music_volume, VOLUME_STEPS)

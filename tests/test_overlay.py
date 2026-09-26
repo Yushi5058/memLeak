@@ -48,9 +48,7 @@ class CrtOverlayTest(unittest.TestCase):
         twice = white_surface(320, 180)
         self.overlay.draw(once)
         self.overlay.draw(twice)
-        self.assertEqual(
-            pygame.image.tobytes(once, "RGBA"), pygame.image.tobytes(twice, "RGBA")
-        )
+        self.assertEqual(pygame.image.tobytes(once, "RGBA"), pygame.image.tobytes(twice, "RGBA"))
 
     def test_centre_stays_untouched_and_corners_darken(self):
         target = white_surface(320, 180)
@@ -105,6 +103,7 @@ class CrtOverlayTest(unittest.TestCase):
         overlay.draw(target)
         self.assertEqual(tuple(target.get_at((32, 32))), (255, 255, 255, 255))
         self.assertEqual(tuple(target.get_at((0, 0))), (0, 0, 0, 255))
+
     def test_zero_alpha_leaves_frame_untouched(self):
         overlay = CrtOverlay(64, 64, scanline_alpha=0, vignette_alpha=0)
         target = white_surface(64, 64)

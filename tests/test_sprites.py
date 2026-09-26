@@ -144,9 +144,7 @@ class SpritesTest(unittest.TestCase):
             (sprites_dir / "player.png").write_bytes(b"not a png")
             sprites = Sprites(assets_dir=sprites_dir)
             self.assertFalse(sprites.has("player"))
-            sprites.draw_sprite(
-                self.canvas, "player", pygame.Rect(0, 0, 8, 8), (255, 0, 255)
-            )
+            sprites.draw_sprite(self.canvas, "player", pygame.Rect(0, 0, 8, 8), (255, 0, 255))
         self.assertEqual(self.canvas.get_at((4, 4))[:3], (255, 0, 255))
 
 

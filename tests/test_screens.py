@@ -26,11 +26,7 @@ def ink_size(font, text):
     """Width and tallest-ink-row height of `text`, ignoring side bearing."""
     image = font.render(text, False, (255, 255, 255), (0, 0, 0))
     width, height = image.get_size()
-    rows = [
-        y
-        for y in range(height)
-        if any(image.get_at((x, y))[0] > 127 for x in range(width))
-    ]
+    rows = [y for y in range(height) if any(image.get_at((x, y))[0] > 127 for x in range(width))]
     return width, (rows[-1] - rows[0] + 1) if rows else 0
 
 
@@ -100,18 +96,14 @@ class ScreensTest(unittest.TestCase):
 
     def test_main_menu_offers_the_four_requested_entries(self):
         labels = [item["label"] for item in self.screens.main.items]
-        self.assertEqual(
-            labels, ["START", "ACHIEVEMENTS", "AUDIO SETTINGS", "EXIT"]
-        )
+        self.assertEqual(labels, ["START", "ACHIEVEMENTS", "AUDIO SETTINGS", "EXIT"])
 
     def test_pause_menu_offers_the_three_requested_entries(self):
         labels = [item["label"] for item in self.screens.pause.items]
         self.assertEqual(labels, ["RESUME", "AUDIO SETTINGS", "EXIT TO MAIN MENU"])
 
     def test_pause_exit_returns_to_the_main_menu_not_play(self):
-        self.assertIs(
-            self.open_pause_item(State.PAUSED, "EXIT TO MAIN MENU"), State.MENU
-        )
+        self.assertIs(self.open_pause_item(State.PAUSED, "EXIT TO MAIN MENU"), State.MENU)
 
     def test_settings_screen_adjusts_music_and_sound(self):
         music_before = self.audio.music_volume
@@ -128,15 +120,11 @@ class ScreensTest(unittest.TestCase):
         self.assertIs(self.open_main_item(State.MENU, "START"), State.LEVEL_SELECT)
 
     def test_achievements_opens_and_returns_to_the_menu(self):
-        self.assertIs(
-            self.open_main_item(State.MENU, "ACHIEVEMENTS"), State.ACHIEVEMENTS
-        )
+        self.assertIs(self.open_main_item(State.MENU, "ACHIEVEMENTS"), State.ACHIEVEMENTS)
         self.assertIs(self.press(State.ACHIEVEMENTS, pygame.K_ESCAPE), State.MENU)
 
     def test_settings_opens_and_returns_to_the_menu(self):
-        self.assertIs(
-            self.open_main_item(State.MENU, "AUDIO SETTINGS"), State.SETTINGS
-        )
+        self.assertIs(self.open_main_item(State.MENU, "AUDIO SETTINGS"), State.SETTINGS)
         self.assertIs(self.press(State.SETTINGS, pygame.K_ESCAPE), State.MENU)
 
     def test_exit_quits_from_the_main_menu(self):
@@ -154,11 +142,7 @@ class ScreensTest(unittest.TestCase):
 
     def test_locked_chambers_are_marked_and_cannot_be_chosen(self):
         self.screens.build_level_menu()
-        locked = [
-            item
-            for item in self.screens.levels.visible()
-            if "LOCKED" in item["label"]
-        ]
+        locked = [item for item in self.screens.levels.visible() if "LOCKED" in item["label"]]
         self.assertEqual(len(locked), len(LEVELS) - 1)
         pick(self.screens.levels, LEVELS[1].name)
         self.assertIs(
@@ -172,9 +156,7 @@ class ScreensTest(unittest.TestCase):
         self.progress.unlocked = len(LEVELS)
         self.screens.build_level_menu()
         pick(self.screens.levels, LEVELS[1].name)
-        self.assertIs(
-            self.press(State.LEVEL_SELECT, pygame.K_RETURN), State.PROLOGUE
-        )
+        self.assertIs(self.press(State.LEVEL_SELECT, pygame.K_RETURN), State.PROLOGUE)
         self.assertEqual(self.flow.level_index, 1)
         self.assertTrue(self.narration.in_chapter)
 
@@ -217,9 +199,7 @@ class ScreensTest(unittest.TestCase):
         self.assertIs(self.press(State.PAUSED, pygame.K_ESCAPE), State.PLAY)
 
     def test_settings_from_pause_returns_to_pause(self):
-        self.assertIs(
-            self.open_pause_item(State.PAUSED, "AUDIO SETTINGS"), State.SETTINGS
-        )
+        self.assertIs(self.open_pause_item(State.PAUSED, "AUDIO SETTINGS"), State.SETTINGS)
         self.assertIs(self.press(State.SETTINGS, pygame.K_ESCAPE), State.PAUSED)
 
     def test_mute_toggles_and_blocks_sound(self):
@@ -298,9 +278,7 @@ class ScreensTest(unittest.TestCase):
         pick(self.screens.settings, "MUSIC")
         self.press(State.SETTINGS, pygame.K_LEFT)
         expected = self.audio.music_volume
-        self.assertEqual(
-            Progress(Path(self.tmp.name) / "progress.json").music_volume, expected
-        )
+        self.assertEqual(Progress(Path(self.tmp.name) / "progress.json").music_volume, expected)
 
     def test_leaving_the_settings_row_never_saves(self):
         before = self.progress.music_volume
@@ -342,12 +320,8 @@ class ScreensTest(unittest.TestCase):
     def test_achievement_text_fits_inside_the_screen(self):
         for achievement in ACHIEVEMENTS:
             for text in (f"* {achievement.label}", achievement.hint):
-                self.assertLessEqual(
-                    self.pixel_font.size(text)[0], self.canvas.get_width()
-                )
-                self.assertLessEqual(
-                    self.small_font.size(text)[0], self.canvas.get_width()
-                )
+                self.assertLessEqual(self.pixel_font.size(text)[0], self.canvas.get_width())
+                self.assertLessEqual(self.small_font.size(text)[0], self.canvas.get_width())
 
     def test_rows_are_backed_by_a_tile_that_differentiates_earned_from_locked(self):
         self.progress.unlock_achievement(ACHIEVEMENTS[0].key)
@@ -403,9 +377,7 @@ class ScreensTest(unittest.TestCase):
         for secret in hidden:
             self.progress.achievements = [secret.key]
             earned_spy = SurfaceSpy(self.canvas)
-            self.screens.draw(
-                earned_spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font
-            )
+            self.screens.draw(earned_spy, self.pixel_font, State.ACHIEVEMENTS, self.small_font)
             tiles_earned = [r for _, r in earned_spy.fills if r]
             self.assertEqual(len(tiles_earned), len(visible_locked) + 1)
 

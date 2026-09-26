@@ -21,9 +21,7 @@ def walk(script: Prologue, narration: Narration, flow: Flow) -> State:
     """Presses confirm until the script hands control back to play."""
     state = State.PROLOGUE
     for _ in range(script.phase_count * 2):
-        state = main.handle_key(
-            pygame.K_RETURN, State.PROLOGUE, flow.session, narration, flow
-        )
+        state = main.handle_key(pygame.K_RETURN, State.PROLOGUE, flow.session, narration, flow)
     return state
 
 
@@ -41,9 +39,7 @@ class ChapterTextTest(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             self.assertTrue(parse_phases(text), path.name)
             for line in text.splitlines():
-                self.assertLessEqual(
-                    len(line.rstrip()), MAX_COLUMNS, f"{path.name}: {line!r}"
-                )
+                self.assertLessEqual(len(line.rstrip()), MAX_COLUMNS, f"{path.name}: {line!r}")
 
     def test_chapters_carry_their_roman_numeral_title(self):
         for index, title in CHAPTER_TITLES.items():
@@ -121,9 +117,7 @@ class ChapterPlaybackTest(unittest.TestCase):
         self._tmp.cleanup()
 
     def confirm(self, state: State) -> State:
-        return main.handle_key(
-            pygame.K_RETURN, state, self.flow.session, self.narration, self.flow
-        )
+        return main.handle_key(pygame.K_RETURN, state, self.flow.session, self.narration, self.flow)
 
     def test_advancing_into_a_chamber_plays_its_chapter_first(self):
         self.assertIs(self.confirm(State.CLEARED), State.PROLOGUE)

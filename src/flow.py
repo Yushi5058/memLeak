@@ -56,9 +56,7 @@ class Flow:
         session = self.session
         level = self.chamber.level
         already_cleared = self.progress.has_cleared(self.level_index)
-        self.progress.record_clear(
-            self.level_index, session.elapsed, session.earth_alloc
-        )
+        self.progress.record_clear(self.level_index, session.elapsed, session.earth_alloc)
         if session.hits == 0:
             self.progress.record_clean_clear(self.level_index)
         for key in earned_on_clear(

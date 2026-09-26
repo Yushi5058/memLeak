@@ -80,9 +80,7 @@ class Prologue:
 
     def update(self, dt: float) -> None:
         if not self.phase_finished:
-            self.revealed = min(
-                float(self.total), self.revealed + self.chars_per_second * dt
-            )
+            self.revealed = min(float(self.total), self.revealed + self.chars_per_second * dt)
 
     def skip(self) -> None:
         self.revealed = float(self.total)
@@ -129,8 +127,7 @@ class Prologue:
         leading = font.get_linesize() * TEXT_SCALE
         top = max(
             MARGIN,
-            (surface.get_height() - leading * (len(self.phases) + (1 if self.title else 0)))
-            // 2,
+            (surface.get_height() - leading * (len(self.phases) + (1 if self.title else 0))) // 2,
         )
         if self.title:
             heading = self._scaled(font.render(self.title, False, prompt_color))
