@@ -127,7 +127,7 @@ so pixels stay square.
 ## Development
 
 ```sh
-python -m unittest discover -s tests -t .   # 216 tests
+python -m unittest discover -s tests -t .   # 223 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music
