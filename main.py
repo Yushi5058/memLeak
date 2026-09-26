@@ -63,11 +63,11 @@ def handle_key(
         if key in CONFIRM_KEYS:
             return State.PROLOGUE
     elif state is State.PROLOGUE:
-        if prologue.finished:
-            if key in CONFIRM_KEYS:
-                return State.PLAY
-        else:
-            prologue.skip()
+        if key in CONFIRM_KEYS and not prologue.advance():
+            if flow is not None:
+                flow.progress.seen_prologue = True
+                flow.progress.save()
+            return State.PLAY
     elif state is State.PLAY:
         if key in MOVE_KEYS:
             session.press_step()
@@ -216,16 +216,19 @@ def main() -> None:
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
+                previous = state
                 if state in MENU_STATES:
                     result = screens.handle_key(state, event.key)
                     if result is None:
                         running = False
-                    else:
-                        state = result
+                        continue
+                    state = result
                 else:
                     state = handle_key(
                         event.key, state, flow.session, prologue, flow, screens
                     )
+                if state is State.PROLOGUE and previous is not State.PROLOGUE:
+                    prologue.reset()
 
         if state is State.PROLOGUE:
             prologue.update(dt)

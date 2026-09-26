@@ -1,5 +1,7 @@
 import os
+import tempfile
 import unittest
+from pathlib import Path
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
@@ -8,6 +10,8 @@ import pygame
 
 import main
 from src.chamber import Chamber
+from src.flow import Flow
+from src.progression import Progress
 from src.prologue import Prologue
 from src.session import Session
 from src.settings import INTERNAL_HEIGHT, INTERNAL_WIDTH
@@ -30,7 +34,7 @@ class MainShellTest(unittest.TestCase):
         self.canvas = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
         self.chamber = Chamber()
         self.session = Session(self.chamber)
-        self.prologue = Prologue(["one", "", "two"])
+        self.prologue = Prologue([["one"], ["two"]])
 
     def test_vendored_font_is_used_when_present(self):
         self.assertTrue(main.FONT_PATH.is_file())
@@ -69,24 +73,44 @@ class MainShellTest(unittest.TestCase):
                 State.PROLOGUE,
             )
 
-    def test_prologue_key_completes_reveal_before_advancing(self):
-        self.assertFalse(self.prologue.finished)
+    def test_prologue_key_completes_the_current_phase_first(self):
+        self.assertFalse(self.prologue.phase_finished)
         self.assertIs(
             main.handle_key(
                 pygame.K_RETURN, State.PROLOGUE, self.session, self.prologue
             ),
             State.PROLOGUE,
         )
+        self.assertTrue(self.prologue.phase_finished)
+        self.assertFalse(self.prologue.finished)
+
+    def test_prologue_confirm_walks_every_phase_then_starts_play(self):
+        state = State.PROLOGUE
+        for _ in range(self.prologue.phase_count * 2):
+            state = main.handle_key(
+                pygame.K_RETURN, State.PROLOGUE, self.session, self.prologue
+            )
+        self.assertIs(state, State.PLAY)
         self.assertTrue(self.prologue.finished)
 
-    def test_prologue_confirm_advances_once_reveal_is_complete(self):
-        self.prologue.skip()
-        self.assertIs(
-            main.handle_key(
-                pygame.K_RETURN, State.PROLOGUE, self.session, self.prologue
-            ),
-            State.PLAY,
-        )
+    def test_completing_the_prologue_persists_that_it_was_seen(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "progress.json"
+            progress = Progress(path)
+            flow = Flow(progress)
+            state = State.PROLOGUE
+            for _ in range(self.prologue.phase_count * 2):
+                state = main.handle_key(
+                    pygame.K_RETURN,
+                    State.PROLOGUE,
+                    self.session,
+                    self.prologue,
+                    flow,
+                )
+            self.assertIs(state, State.PLAY)
+            self.assertTrue(progress.seen_prologue)
+            self.assertTrue(path.is_file())
+            self.assertTrue(Progress(path).seen_prologue)
 
     def test_play_movement_keys_drain_allocation(self):
         before = self.session.earth_alloc
