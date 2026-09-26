@@ -9,7 +9,7 @@ CHARS_PER_SECOND = 22.0
 PROMPT = "[ENTER]"
 SKIP_PROMPT = "[S] SKIP"
 PROMPT_MARGIN = 4
-PROMPT_GAP = 6
+PROMPT_GAP = 2
 BLINK_INTERVAL_MS = 400
 MAX_COLUMNS = 18
 TEXT_SCALE = 2
@@ -144,17 +144,10 @@ class Prologue:
 
         baseline = surface.get_height() - PROMPT_MARGIN
         skip = self._scaled(font.render(SKIP_PROMPT, False, prompt_color))
-        surface.blit(skip, (surface.get_width() - skip.get_width() - PROMPT_MARGIN, baseline - skip.get_height()))
-        if self.phase_finished and int(pygame.time.get_ticks() / BLINK_INTERVAL_MS) % 2:
-            label = self._scaled(font.render(PROMPT, False, prompt_color))
-            surface.blit(
-                label,
-                (
-                    surface.get_width()
-                    - label.get_width()
-                    - PROMPT_MARGIN
-                    - skip.get_width()
-                    - PROMPT_GAP,
-                    baseline - label.get_height(),
-                ),
-            )
+        label = self._scaled(font.render(PROMPT, False, prompt_color))
+        skip_x = surface.get_width() - skip.get_width() - PROMPT_MARGIN
+        label_x = skip_x - label.get_width() - PROMPT_GAP
+        if int(pygame.time.get_ticks() / BLINK_INTERVAL_MS) % 2:
+            surface.blit(skip, (skip_x, baseline - skip.get_height()))
+            if self.phase_finished:
+                surface.blit(label, (label_x, baseline - label.get_height()))

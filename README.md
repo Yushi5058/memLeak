@@ -134,8 +134,8 @@ advance one phase at a time. Lines wrap to 18 columns so they fit the 320px
 screen.
 
 Once every chamber has been cleared, the final cleared screen offers `Enter`
-to return to the main menu, where `START` becomes `REPLAY CHAMBERS`. Nothing
-new unlocks, but every script and every achievement stays reachable.
+to return to the main menu, which keeps reading `START`. Nothing new unlocks,
+but every script and every achievement stays reachable.
 
 Balance lives entirely in `src/settings.py`. The simulation runs at a
 fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour

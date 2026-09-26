@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
@@ -7,12 +8,15 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame
 
 from src.prologue import (
+    BLINK_INTERVAL_MS,
     CHARS_PER_SECOND,
     MARGIN,
     MAX_COLUMNS,
     PROLOGUE_PATH,
     PROMPT,
+    PROMPT_GAP,
     PROMPT_MARGIN,
+    SKIP_PROMPT,
     TEXT_SCALE,
     Prologue,
     parse_phases,
@@ -39,6 +43,30 @@ class PrologueTest(unittest.TestCase):
                 for y in range(y_stop)
             )
         ]
+
+    def prompt_band_runs(self, script):
+        self.surface.fill(BG_COLOR)
+        script.draw(self.surface, self.font)
+        band = range(INTERNAL_HEIGHT - 20, INTERNAL_HEIGHT)
+        columns = [
+            x
+            for x in range(INTERNAL_WIDTH)
+            if any(self.surface.get_at((x, y))[:3] != BG_COLOR for y in band)
+        ]
+        if not columns:
+            return []
+        runs, start, previous = [], columns[0], columns[0]
+        for column in columns[1:]:
+            if column != previous + 1:
+                runs.append((start, previous))
+                start = column
+            previous = column
+        runs.append((start, previous))
+        return runs
+
+    def skip_x(self):
+        width = self.font.size(SKIP_PROMPT)[0] * TEXT_SCALE
+        return INTERNAL_WIDTH - width - PROMPT_MARGIN
 
     def test_shipped_script_loads(self):
         self.assertTrue(PROLOGUE_PATH.is_file())
@@ -220,12 +248,6 @@ class PrologueTest(unittest.TestCase):
         self.assertEqual(empty.phase_index, 0)
         self.assertTrue(empty.finished)
 
-    def test_the_skip_label_is_drawn_even_before_the_phase_finishes(self):
-        self.surface.fill(BG_COLOR)
-        self.assertFalse(self.prologue.phase_finished)
-        self.prologue.draw(self.surface, self.font)
-        self.assertTrue(self.drawn_columns(self.surface))
-
     def test_the_prompt_sits_in_the_bottom_right_corner(self):
         self.surface.fill(BG_COLOR)
         for _ in range(self.prologue.phase_count):
@@ -235,6 +257,50 @@ class PrologueTest(unittest.TestCase):
         height = self.font.size(PROMPT)[1] * TEXT_SCALE
         self.assertLessEqual(width + 4, INTERNAL_WIDTH)
         self.assertLessEqual(height + 4, INTERNAL_HEIGHT)
+
+    def test_the_prompt_cluster_hangs_together(self):
+        script = Prologue([["x"]])
+        script.skip_all()
+        with patch("pygame.time.get_ticks", return_value=BLINK_INTERVAL_MS):
+            runs = self.prompt_band_runs(script)
+        edge = self.skip_x()
+        left = [end for _, end in runs if end < edge]
+        right = [start for start, _ in runs if start >= edge]
+        self.assertTrue(left and right)
+        self.assertLessEqual(min(right) - max(left) - 1, PROMPT_GAP)
+
+    def test_both_prompts_blink_in_sync(self):
+        script = Prologue([["x"]])
+        script.skip_all()
+        with patch("pygame.time.get_ticks", return_value=BLINK_INTERVAL_MS):
+            lit = self.prompt_band_runs(script)
+        with patch("pygame.time.get_ticks", return_value=0):
+            dark = self.prompt_band_runs(script)
+        self.assertTrue(lit)
+        self.assertEqual(dark, [])
+
+    def test_the_skip_prompt_stays_visible_while_typing(self):
+        script = Prologue([["x"]])
+        self.assertFalse(script.phase_finished)
+        with patch("pygame.time.get_ticks", return_value=BLINK_INTERVAL_MS):
+            runs = self.prompt_band_runs(script)
+        edge = self.skip_x()
+        self.assertTrue([start for start, _ in runs if start >= edge])
+        self.assertFalse([start for start, _ in runs if start < edge])
+
+    def test_the_skip_prompt_does_not_shift_when_enter_appears(self):
+        typing = Prologue([["x"]])
+        done = Prologue([["x"]])
+        done.skip_all()
+        edge = self.skip_x()
+        with patch("pygame.time.get_ticks", return_value=BLINK_INTERVAL_MS):
+            before = [
+                start for start, _ in self.prompt_band_runs(typing) if start >= edge
+            ]
+            after = [
+                start for start, _ in self.prompt_band_runs(done) if start >= edge
+            ]
+        self.assertEqual(before, after)
 
     def test_draw_does_not_crash_at_any_stage(self):
         for _ in range(30):

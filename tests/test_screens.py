@@ -192,13 +192,13 @@ class ScreensTest(unittest.TestCase):
         )
         self.assertTrue(lit)
 
-    def test_start_is_relabelled_once_everything_is_cleared(self):
+    def test_start_stays_labelled_start_once_everything_is_cleared(self):
         self.screens.draw(self.canvas, self.font, State.MENU, self.small_font)
         self.assertEqual(self.screens.main.items[0]["label"], "START")
         for index in range(len(LEVELS)):
             self.progress.record_clear(index, 10.0, 300.0)
         self.screens.draw(self.canvas, self.font, State.MENU, self.small_font)
-        self.assertEqual(self.screens.main.items[0]["label"], "REPLAY CHAMBERS")
+        self.assertEqual(self.screens.main.items[0]["label"], "START")
 
     def test_first_ever_play_goes_through_the_prologue(self):
         self.assertFalse(self.progress.seen_prologue)

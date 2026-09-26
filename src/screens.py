@@ -95,11 +95,6 @@ class Screens:
         self.narration.begin(chapter)
         return State.PROLOGUE if chapter is not None else State.PLAY
 
-    def _sync_main_labels(self) -> None:
-        self.main.items[0]["label"] = (
-            "REPLAY CHAMBERS" if self.flow.all_cleared else "START"
-        )
-
     def handle_key(self, state: State, key: int) -> State | None:
         if state is State.MENU:
             return self._handle_main(key)
@@ -187,7 +182,6 @@ class Screens:
 
     def draw(self, canvas, font, state: State, small_font=None) -> None:
         if state is State.MENU:
-            self._sync_main_labels()
             self.main.draw(canvas, font, y=44)
             if self.flow.all_cleared:
                 self._centered(
