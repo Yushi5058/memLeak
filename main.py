@@ -19,6 +19,7 @@ from src.settings import (
     TARGET_COLOR,
     TEXT_COLOR,
 )
+from src.sprites import Sprites
 from src.states import State
 
 FONT_PATH = Path(__file__).parent / "assets" / "fonts" / "Px437_IBM_EGA_8x8.ttf"
@@ -80,9 +81,9 @@ def draw_title(canvas, font) -> None:
         draw_centered(canvas, font, TITLE_PROMPT, 108, TEXT_COLOR)
 
 
-def render_world(canvas, chamber, session, state, font) -> None:
-    chamber.draw(canvas, session.falling)
-    session.player.draw(canvas)
+def render_world(canvas, chamber, session, state, font, sprites=None) -> None:
+    chamber.draw(canvas, session.falling, sprites)
+    session.player.draw(canvas, sprites)
 
     hud = font.render(
         f"EARTH_ALLOC: {session.earth_alloc:06.1f} YRS  T:{session.elapsed:06.2f}s",
@@ -112,14 +113,14 @@ def render_world(canvas, chamber, session, state, font) -> None:
         )
 
 
-def render(canvas, chamber, session, state, font, prologue) -> None:
+def render(canvas, chamber, session, state, font, prologue, sprites=None) -> None:
     canvas.fill(BG_COLOR)
     if state is State.TITLE:
         draw_title(canvas, font)
     elif state is State.PROLOGUE:
         prologue.draw(canvas, font)
     else:
-        render_world(canvas, chamber, session, state, font)
+        render_world(canvas, chamber, session, state, font, sprites)
 
 
 def main() -> None:
@@ -135,6 +136,7 @@ def main() -> None:
     session = Session(chamber)
     prologue = Prologue.from_file()
     audio = Audio()
+    sprites = Sprites()
     overlay = CrtOverlay(INTERNAL_WIDTH, INTERNAL_HEIGHT)
     state = State.TITLE
     running = True
@@ -168,7 +170,7 @@ def main() -> None:
         for cue in session.drain_events():
             audio.play(cue)
 
-        render(canvas, chamber, session, state, font, prologue)
+        render(canvas, chamber, session, state, font, prologue, sprites)
         overlay.draw(canvas)
         window.blit(pygame.transform.scale(canvas, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
         pygame.display.flip()

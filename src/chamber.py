@@ -31,12 +31,21 @@ class Chamber:
         return rect.colliderect(self.target)
 
     def draw(
-        self, surface: pygame.Surface, falling: Sequence["FallingHazard"]
+        self, surface: pygame.Surface, falling: Sequence["FallingHazard"], sprites=None
     ) -> None:
         for p in self.platforms:
-            pygame.draw.rect(surface, GROUND_COLOR, p)
+            if sprites is not None:
+                sprites.draw_tiled(surface, "tile_platform", p, GROUND_COLOR)
+            else:
+                pygame.draw.rect(surface, GROUND_COLOR, p)
         for h in self.hazards:
-            pygame.draw.rect(surface, HAZARD_COLOR, h)
+            if sprites is not None:
+                sprites.draw_tiled(surface, "tile_hazard", h, HAZARD_COLOR)
+            else:
+                pygame.draw.rect(surface, HAZARD_COLOR, h)
         for hz in falling:
-            hz.draw(surface)
-        pygame.draw.rect(surface, TARGET_COLOR, self.target)
+            hz.draw(surface, sprites)
+        if sprites is not None:
+            sprites.draw_sprite(surface, "portal", self.target, TARGET_COLOR)
+        else:
+            pygame.draw.rect(surface, TARGET_COLOR, self.target)

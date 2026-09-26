@@ -73,5 +73,8 @@ class Player:
                     self.rect.top = plat.bottom
                     self.vel_y = 0.0
 
-    def draw(self, surface: pygame.Surface):
-        pygame.draw.rect(surface, PLAYER_COLOR, self.rect)
+    def draw(self, surface: pygame.Surface, sprites=None):
+        if sprites is not None:
+            sprites.draw_sprite(surface, "player", self.rect, PLAYER_COLOR)
+        else:
+            pygame.draw.rect(surface, PLAYER_COLOR, self.rect)

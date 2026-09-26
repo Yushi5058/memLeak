@@ -48,5 +48,8 @@ class FallingHazard:
     def is_spent(self) -> bool:
         return self.rect.top > INTERNAL_HEIGHT
 
-    def draw(self, surface: pygame.Surface) -> None:
-        pygame.draw.rect(surface, HAZARD_COLOR, self.rect)
+    def draw(self, surface: pygame.Surface, sprites=None) -> None:
+        if sprites is not None:
+            sprites.draw_sprite(surface, "hazard_falling", self.rect, HAZARD_COLOR)
+        else:
+            pygame.draw.rect(surface, HAZARD_COLOR, self.rect)
