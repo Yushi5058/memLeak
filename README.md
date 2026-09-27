@@ -174,18 +174,21 @@ fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour so pix
 Everything in this section needs the full repository, not the release archive.
 
 ```sh
-python -m unittest discover -s tests -t .   # 281 tests
+python -m unittest discover -s tests -t .   # 286 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music
-python tools/build_release.py                # build memLeak-1.0.zip
+python tools/build_release.py                # build memLeak-<VERSION>.zip
 ```
 
 `tools/gen_sfx.py` and `tools/gen_music.py` use only the standard library
 and are deterministic, so regenerating produces byte-identical files.
 `tools/build_release.py` is deterministic too, and builds the archive from an
 explicit allowlist rather than an exclusion list, so agent traces and secret
-achievement notes cannot slip in by being forgotten.
+achievement notes cannot slip in by being forgotten. It takes the archive name
+from `VERSION` in `src/settings.py`, so a build cannot be published under a
+version the tree does not claim; pass `--package` to rebuild an older release
+deliberately, which warns when the name disagrees with `VERSION`.
 Tests set `SDL_VIDEODRIVER` and `SDL_AUDIODRIVER` to `dummy`, allowing them to run headless.
 
 ## Third-party assets
