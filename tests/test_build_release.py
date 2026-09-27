@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import unittest
 from pathlib import Path
 
@@ -6,6 +7,14 @@ from src.settings import VERSION
 
 REPO = Path(__file__).resolve().parent.parent
 SOURCE = (REPO / "tools" / "build_release.py").read_text()
+README = (REPO / "README.md").read_text()
+LAYOUT_HEADING = "The first block below is what ships"
+
+
+def promised_layout() -> list[str]:
+    _, _, after = README.partition(LAYOUT_HEADING)
+    block = after.split("```")[1]
+    return [line.split()[0] for line in block.splitlines() if line.strip()]
 
 
 def load_builder():
@@ -41,6 +50,32 @@ class PackageNameTest(unittest.TestCase):
     def test_allowlist_still_covers_the_shipped_tree(self):
         builder = load_builder()
         self.assertEqual(builder.check_allowed(builder.members()), 0)
+
+
+class ReadmeClaimTest(unittest.TestCase):
+    def test_every_promised_path_really_ships(self):
+        builder = load_builder()
+        shipped = {p.relative_to(REPO).as_posix() for p in builder.members()}
+        for entry in promised_layout():
+            with self.subTest(entry):
+                prefix = entry.rstrip("/") + "/"
+                self.assertTrue(
+                    any(name == entry or name.startswith(prefix) for name in shipped),
+                    f"README promises {entry!r} in the release archive, but the "
+                    f"allowlist does not ship it",
+                )
+
+    def test_documented_test_count_is_accurate(self):
+        claimed = re.search(r"#\s*(\d+)\s+tests", README)
+        self.assertIsNotNone(claimed, "README no longer states a test count")
+        found = unittest.defaultTestLoader.discover(
+            str(REPO / "tests"), top_level_dir=str(REPO)
+        )
+        self.assertEqual(
+            claimed.group(1),
+            str(found.countTestCases()),
+            "README's test count is stale; update the number in the Development section",
+        )
 
 
 if __name__ == "__main__":
