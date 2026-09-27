@@ -16,25 +16,29 @@ does not ship to the releases page.
   resolved. Either retag to the fix commit, publish against a tag that matches,
   or, if shipping the mismatch is genuinely intended, acknowledge it explicitly
   with `ALLOW_TAG_MISMATCH=1`.
-- **The Windows `.exe` is not built yet.** Build it on a Windows machine with
-  Python 3.10+ on PATH: `tools\build_windows.bat`.
+- **The Windows `.exe` is built, but not from Windows.** It came from Windows
+  Python 3.12.10 running under Wine 11.18 on Linux, using the same pins
+  `build_windows.bat` uses (pyinstaller 6.22.3, pygame-ce 2.5.8). It is a
+  PE32+ x86-64 image, it launches without a traceback, and its payload carries
+  all seven sprites, all eight sounds, both fonts and all three licence files,
+  but it has never run on Windows itself. To ship a natively built binary
+  instead, run `tools\build_windows.bat` on a Windows machine; it writes
+  straight to `dist-windows/dist/memLeak-1.1.exe`, which is where the publish
+  script looks for it, so there is nothing to copy or rename, and then replace
+  the `sha256` line in `RELEASE_NOTES_v1.1.md` with the one it prints. The
+  publish script refuses to run until every asset's real digest appears there.
 - **The repository must be public** and `tea` authenticated:
   `tea login add --name codeberg --url https://codeberg.org --token <token>`.
 
 ## Steps
 
-1. Build the missing `.exe`. `build_windows.bat` writes it straight to
-   `dist-windows/dist/memLeak-1.1.exe`, which is where the publish script looks
-   for it, so there is nothing to copy or rename.
-2. Copy the `sha256 <digest>` line the build printed into the checksum table in
-   `RELEASE_NOTES_v1.1.md`, replacing the `pending, not yet built` entry. The
-   publish script refuses to run until every asset's real digest appears there, so
-   this is not optional bookkeeping.
-3. Resolve the tag as above.
-4. Confirm the repository is public and `tea login list --output json` is not `[]`.
-5. `./packaging/PUBLISH_v1.1.sh` — add `TAG=<tag>` if you published against a
+1. Optionally confirm the Windows `.exe` runs on Windows itself, and rebuild it
+   there first if you would rather ship a natively built binary.
+2. Resolve the tag as above.
+3. Confirm the repository is public and `tea login list --output json` is not `[]`.
+4. `./packaging/PUBLISH_v1.1.sh` — add `TAG=<tag>` if you published against a
    different tag, or `ALLOW_TAG_MISMATCH=1` if you decided to ship the mismatch.
-6. Verify with `tea releases --repo yushi_61/memLeak`, then download each asset
+5. Verify with `tea releases --repo yushi_61/memLeak`, then download each asset
    and check it against the published checksums.
 
 ## Files to attach
