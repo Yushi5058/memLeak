@@ -73,6 +73,20 @@ if [ ${#missing[@]} -gt 0 ]; then
     die "not built yet: ${missing[*]}"
 fi
 
+# A release whose notes carry stale hashes sends every downloader to a checksum
+# mismatch, so refuse to upload until each asset's real digest is in the notes.
+notes_stale=()
+for asset in "${ASSETS[@]}"; do
+    digest=$(sha256sum "$asset" | cut -d' ' -f1)
+    grep -qF "$digest" "$NOTES" || notes_stale+=("$(basename "$asset")  $digest")
+done
+if [ ${#notes_stale[@]} -gt 0 ]; then
+    printf '\n[X] these assets are not listed with the right sha256 in %s:\n\n' "$NOTES" >&2
+    printf '    %s\n' "${notes_stale[@]}" >&2
+    printf '\nAdd the digest to the checksum table, then rerun.\n\n' >&2
+    exit 1
+fi
+
 printf '\nArtefacts to attach:\n'
 ls -lh "${ASSETS[@]}" | awk '{print "  " $5 "\t" $9}'
 
