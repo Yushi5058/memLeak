@@ -97,8 +97,9 @@ count until unlocked. Discover them through disciplined play.
 ## Sprites
 
 The game ships with hand-made pixel art for every character, hazard and tile, so it needs
-no external downloads to run. Each PNG is rescaled to the box matching its hitbox, and
-anything missing or unreadable falls back to a coloured rectangle per-sprite, so the
+no external downloads to run. Each PNG is scaled to fit inside the box matching its
+hitbox **while preserving its aspect ratio**, then centred, so art is never stretched.
+Anything missing or unreadable falls back to a coloured rectangle per-sprite, so the
 game still runs if the art is stripped.
 
 | File | Target size | Replaces | Tiled? |
@@ -151,6 +152,7 @@ These live in the development repository only and are not shipped in the archive
 
 ```
 tools/build_release.py  builds the release archive from an allowlist
+tools/fix_sprites.py    repairs sprite art: despeckle, crop, aspect-fit
 tools/gen_sfx.py     regenerates the sound effects
 tools/gen_music.py   regenerates the chiptune loops
 tests/               unit tests
