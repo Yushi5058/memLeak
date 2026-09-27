@@ -1,6 +1,8 @@
+import hashlib
 import importlib.util
 import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -140,6 +142,39 @@ class WindowsBranchTest(unittest.TestCase):
 
     def test_data_files_survive_the_reload(self):
         self.assertTrue(self.packager.data_files())
+
+
+class ReleaseMetadataTest(unittest.TestCase):
+    """The builder reports the digest and size the publisher will check.
+
+    The Windows build runs on a machine the maintainer drives by hand, so the
+    digest it prints is what gets pasted into the release notes. These pin the
+    two values that hand-off depends on.
+    """
+
+    def setUp(self):
+        self.packager = load("build_executable")
+
+    def test_sha256_file_matches_the_standard_abc_vector(self):
+        with tempfile.NamedTemporaryFile() as handle:
+            handle.write(b"abc")
+            handle.flush()
+            self.assertEqual(
+                self.packager.sha256_file(Path(handle.name)),
+                "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            )
+
+    def test_sha256_file_handles_content_spanning_read_chunks(self):
+        payload = b"x" * (1 << 20) + b"tail"
+        with tempfile.NamedTemporaryFile() as handle:
+            handle.write(payload)
+            handle.flush()
+            digest = self.packager.sha256_file(Path(handle.name))
+        self.assertEqual(digest, hashlib.sha256(payload).hexdigest())
+
+    def test_publish_ceiling_agrees_with_the_publish_script(self):
+        script = (REPO / "packaging" / "PUBLISH_v1.1.sh").read_text()
+        self.assertIn(str(self.packager.PUBLISH_CEILING), script)
 
 
 if __name__ == "__main__":

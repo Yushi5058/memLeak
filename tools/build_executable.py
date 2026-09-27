@@ -19,6 +19,7 @@ Run from the repository root:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import shutil
 import subprocess
@@ -132,6 +133,19 @@ def produced_path(outdir: Path, name: str, onedir: bool) -> Path:
     return dist / name
 
 
+# Kept in step with the per-asset ceiling in packaging/PUBLISH_v1.1.sh so a build
+# is rejected here rather than at publish time, after the manual Windows work.
+PUBLISH_CEILING = 104_857_600
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build a standalone memLeak executable.")
     parser.add_argument("--onedir", action="store_true", help="folder instead of one file")
@@ -160,6 +174,11 @@ def main() -> int:
     else:
         size = produced.stat().st_size
     print(f"built {produced}  {size / 1_048_576:.1f} MB")
+    if not produced.is_dir():
+        print(f"sha256 {sha256_file(produced)}")
+        if size > PUBLISH_CEILING:
+            print(f"warning: {size} bytes is over the {PUBLISH_CEILING}-byte "
+                  "per-asset publish ceiling")
     return 0
 
 
