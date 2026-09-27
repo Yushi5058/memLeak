@@ -39,7 +39,8 @@ python -m pip install --quiet "pyinstaller==6.22.3" "pygame-ce==2.5.8"
 if errorlevel 1 goto :fail
 
 echo [3/3] Bundling the game. This takes a minute or two ...
-python tools\build_executable.py --onefile --outdir dist-windows
+rem Onefile is the default; there is no --onefile flag, only --onedir.
+python tools\build_executable.py --outdir dist-windows
 if errorlevel 1 goto :fail
 
 echo.

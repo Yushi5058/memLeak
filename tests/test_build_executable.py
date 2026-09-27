@@ -55,5 +55,37 @@ class ExecutableDataFileTest(unittest.TestCase):
         self.assertEqual(self.packager.SEPARATOR, ";" if sys.platform == "win32" else ":")
 
 
+class CommandContractTest(unittest.TestCase):
+    def setUp(self):
+        self.packager = load("build_executable")
+        self.outdir = Path("/tmp/memleak-contract-check")
+
+    def test_default_is_onefile(self):
+        argv = self.packager.command(self.outdir, onedir=False, name="memLeak-1.1")
+        self.assertIn("--onefile", argv)
+        self.assertNotIn("--onedir", argv)
+
+    def test_onedir_swaps_the_layout_flag(self):
+        argv = self.packager.command(self.outdir, onedir=True, name="memLeak-1.1")
+        self.assertIn("--onedir", argv)
+        self.assertNotIn("--onefile", argv)
+
+    def test_explicit_onefile_flag_is_rejected(self):
+        # Onefile is the default, so argparse rejects an explicit --onefile.
+        # build_windows.bat passed one, and the build died at the final step on
+        # a Windows machine that took an hour to set up.
+        saved = sys.argv
+        sys.argv = ["build_executable.py", "--onefile"]
+        try:
+            with self.assertRaises(SystemExit):
+                self.packager.main()
+        finally:
+            sys.argv = saved
+
+    def test_name_is_passed_through(self):
+        argv = self.packager.command(self.outdir, onedir=False, name="custom-name")
+        self.assertIn("custom-name", argv)
+
+
 if __name__ == "__main__":
     unittest.main()
