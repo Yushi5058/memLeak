@@ -87,5 +87,35 @@ class CommandContractTest(unittest.TestCase):
         self.assertIn("custom-name", argv)
 
 
+class WindowsBranchTest(unittest.TestCase):
+    """The Windows build can only be run by hand on a VM, so check the branch here.
+
+    SEPARATOR is decided at import time, so the module has to be re-executed
+    with sys.platform patched rather than merely re-read.
+    """
+
+    def setUp(self):
+        self.saved_platform = sys.platform
+        sys.platform = "win32"
+        try:
+            self.packager = load("build_executable")
+        finally:
+            sys.platform = self.saved_platform
+
+    def test_separator_is_a_semicolon_on_windows(self):
+        self.assertEqual(self.packager.SEPARATOR, ";")
+
+    def test_add_data_entries_use_the_windows_separator(self):
+        argv = self.packager.command(Path("/tmp/x"), onedir=False, name="memLeak-1.1")
+        entries = [argv[i + 1] for i, arg in enumerate(argv) if arg == "--add-data"]
+        self.assertTrue(entries)
+        for entry in entries:
+            with self.subTest(entry):
+                self.assertIn(";", entry)
+
+    def test_data_files_survive_the_reload(self):
+        self.assertTrue(self.packager.data_files())
+
+
 if __name__ == "__main__":
     unittest.main()
