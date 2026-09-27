@@ -150,6 +150,7 @@ assets/              fonts and their licences, chiptune audio, sprite art
 These live in the development repository only and are not shipped in the archive:
 
 ```
+tools/build_release.py  builds the release archive from an allowlist
 tools/gen_sfx.py     regenerates the sound effects
 tools/gen_music.py   regenerates the chiptune loops
 tests/               unit tests
@@ -175,10 +176,14 @@ python -m unittest discover -s tests -t .   # 277 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music
+python tools/build_release.py                # build memLeak-1.0.zip
 ```
 
 `tools/gen_sfx.py` and `tools/gen_music.py` use only the standard library
 and are deterministic, so regenerating produces byte-identical files.
+`tools/build_release.py` is deterministic too, and builds the archive from an
+explicit allowlist rather than an exclusion list, so agent traces and secret
+achievement notes cannot slip in by being forgotten.
 Tests set `SDL_VIDEODRIVER` and `SDL_AUDIODRIVER` to `dummy`, allowing them to run headless.
 
 ## Third-party assets

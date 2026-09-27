@@ -9,6 +9,11 @@ venv/
 build/
 dist/
 
+# Release artifacts
+*.zip
+*.tar.gz
+*.exe
+
 # Editor & OS
 .vscode/
 .idea/
