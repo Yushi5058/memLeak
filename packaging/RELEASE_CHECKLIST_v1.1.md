@@ -26,9 +26,10 @@ does not ship to the releases page.
 1. Build the missing `.exe`. `build_windows.bat` writes it straight to
    `dist-windows/dist/memLeak-1.1.exe`, which is where the publish script looks
    for it, so there is nothing to copy or rename.
-2. Add its SHA-256 to the checksum table in `RELEASE_NOTES_v1.1.md`. The publish
-   script refuses to run until every asset's real digest appears there, so this
-   is not optional bookkeeping.
+2. Copy the `sha256 <digest>` line the build printed into the checksum table in
+   `RELEASE_NOTES_v1.1.md`, replacing the `pending, not yet built` entry. The
+   publish script refuses to run until every asset's real digest appears there, so
+   this is not optional bookkeeping.
 3. Resolve the tag as above.
 4. Confirm the repository is public and `tea login list --output json` is not `[]`.
 5. `./packaging/PUBLISH_v1.1.sh` — add `TAG=<tag>` if you published against a

@@ -1,10 +1,13 @@
+import contextlib
 import hashlib
 import importlib.util
+import io
 import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -175,6 +178,42 @@ class ReleaseMetadataTest(unittest.TestCase):
     def test_publish_ceiling_agrees_with_the_publish_script(self):
         script = (REPO / "packaging" / "PUBLISH_v1.1.sh").read_text()
         self.assertIn(str(self.packager.PUBLISH_CEILING), script)
+
+    def report(self, produced: Path, size: int, ceiling: int | None = None) -> str:
+        buffer = io.StringIO()
+        patches = (
+            ()
+            if ceiling is None
+            else (mock.patch.object(self.packager, "PUBLISH_CEILING", ceiling),)
+        )
+        with contextlib.ExitStack() as stack:
+            for item in patches:
+                stack.enter_context(item)
+            with contextlib.redirect_stdout(buffer):
+                self.packager.report_artifact(produced, size)
+        return buffer.getvalue()
+
+    def test_report_prints_the_digest_for_a_single_file(self):
+        with tempfile.NamedTemporaryFile() as handle:
+            handle.write(b"payload")
+            handle.flush()
+            out = self.report(Path(handle.name), 7)
+        self.assertIn(f"sha256 {hashlib.sha256(b'payload').hexdigest()}", out)
+        self.assertNotIn("warning", out)
+
+    def test_report_warns_when_the_build_exceeds_the_publish_ceiling(self):
+        with tempfile.NamedTemporaryFile() as handle:
+            handle.write(b"payload")
+            handle.flush()
+            out = self.report(Path(handle.name), 7, ceiling=4)
+        self.assertIn("warning", out)
+        self.assertIn("per-asset publish ceiling", out)
+
+    def test_report_omits_the_digest_for_a_folder_build(self):
+        with tempfile.TemporaryDirectory() as folder:
+            out = self.report(Path(folder), 99, ceiling=4)
+        self.assertNotIn("sha256", out)
+        self.assertNotIn("warning", out)
 
 
 if __name__ == "__main__":

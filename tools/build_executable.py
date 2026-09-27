@@ -146,6 +146,16 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def report_artifact(produced: Path, size: int) -> None:
+    print(f"built {produced}  {size / 1_048_576:.1f} MB")
+    if produced.is_dir():
+        return
+    print(f"sha256 {sha256_file(produced)}")
+    if size > PUBLISH_CEILING:
+        print(f"warning: {size} bytes is over the {PUBLISH_CEILING}-byte "
+              "per-asset publish ceiling")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build a standalone memLeak executable.")
     parser.add_argument("--onedir", action="store_true", help="folder instead of one file")
@@ -173,12 +183,7 @@ def main() -> int:
         size = sum(f.stat().st_size for f in produced.rglob("*") if f.is_file())
     else:
         size = produced.stat().st_size
-    print(f"built {produced}  {size / 1_048_576:.1f} MB")
-    if not produced.is_dir():
-        print(f"sha256 {sha256_file(produced)}")
-        if size > PUBLISH_CEILING:
-            print(f"warning: {size} bytes is over the {PUBLISH_CEILING}-byte "
-                  "per-asset publish ceiling")
+    report_artifact(produced, size)
     return 0
 
 
