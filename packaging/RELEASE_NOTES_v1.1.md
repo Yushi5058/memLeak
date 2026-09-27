@@ -92,19 +92,5 @@ Largest is about 29 MB, well under the 100 MB per-asset ceiling.
 - `memLeak-1.1-linux-x86_64.tar.gz` (Linux, no FUSE)
 - `memLeak-1.1.exe` (Windows)
 
-## Publishing these notes from the command line
-
-Once the repository is public and `tea login` has been run:
-
-```sh
-tea login create --url https://codeberg.org --name codeberg
-tea releases create --repo yushi_61/memLeak --tag v1.1 --title "memLeak 1.1" \
-    --description RELEASE_NOTES_v1.1.md
-tea releases upload --repo yushi_61/memLeak --tag v1.1 \
-    memLeak-1.1.zip \
-    dist-portable/memLeak-1.1-x86_64.AppImage \
-    dist-portable/memLeak-1.1-linux-x86_64.tar.gz \
-    dist-windows/dist/memLeak-1.1.exe
-sha256sum memLeak-1.1.zip dist-portable/*.AppImage dist-portable/*.tar.gz \
-    dist-windows/dist/memLeak-1.1.exe
-```
+See `packaging/PUBLISH_v1.1.sh` for how this file and those attachments get
+uploaded. That script is internal and is not part of this release body.
