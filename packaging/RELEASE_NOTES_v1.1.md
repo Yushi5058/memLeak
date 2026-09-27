@@ -71,7 +71,7 @@ SHA-256, verified against the files as built:
 5d4c1db2ae4937233d8d6274f416a7b739680151f6e42d9743427dab5c6a6dc1  memLeak-1.1.zip
 ad9765779ba76b2a216d5c43fa34ae6aeeb1911ad2b853f3781f87d5e8a9c7f1  memLeak-1.1-x86_64.AppImage
 29ebee785cd80633a17b81f5d3869f8dc587a7231face0aa4ab09758506ab273  memLeak-1.1-linux-x86_64.tar.gz
-memLeak-1.1.exe                                                       pending, not yet built
+d05b372d27f7b57f151c7a5ffe47d068e7b4b3652fa4b59cafeb05fb93c33b53  memLeak-1.1.exe
 ```
 
 | File | Bytes |
@@ -79,5 +79,6 @@ memLeak-1.1.exe                                                       pending, n
 | `memLeak-1.1.zip` | 921,810 |
 | `memLeak-1.1-x86_64.AppImage` | 24,040,640 |
 | `memLeak-1.1-linux-x86_64.tar.gz` | 23,809,534 |
+| `memLeak-1.1.exe` | 23,178,546 |
 
 Largest is about 24 MB, well under the 100 MB per-asset ceiling.
