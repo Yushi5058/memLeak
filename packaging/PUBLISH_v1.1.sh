@@ -70,7 +70,11 @@ if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
         fi
     fi
 else
-    printf '\n[X] no local tag %s. Fetch tags first: git fetch --tags\n\n' "$TAG" >&2
+    printf '\n[X] no local tag %s.\n' "$TAG" >&2
+    printf '    This gate needs the tag locally to compare it against the build.\n' >&2
+    printf '    If it already exists on the remote:  git fetch --tags\n' >&2
+    printf '    If it is new, create it at the commit being shipped:\n' >&2
+    printf '        git tag %s %s\n\n' "$TAG" "$(git rev-parse --short HEAD)" >&2
     exit 1
 fi
 
