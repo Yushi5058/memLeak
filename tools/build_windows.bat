@@ -6,6 +6,12 @@ REM     tools\build_windows.bat
 REM
 REM Produces dist-windows\dist\memLeak-1.1.exe, which needs no Python install
 REM on the machine that runs it.
+REM
+REM If the build fails partway through with "file name too long" or a path
+REM related error, clone the repository somewhere short like C:\src\memLeak.
+REM The onefile bundle pulls in over a hundred shared libraries under
+REM _internal, and the default MAX_PATH limit of 260 characters is easy to
+REM exceed from inside Documents.
 
 setlocal
 cd /d "%~dp0.."
@@ -14,11 +20,16 @@ echo.
 echo === memLeak Windows build ===
 echo.
 
-where python >nul 2>&1
+rem "where python" also succeeds for the Microsoft Store alias on Windows 10 and
+rem 11, which opens the Store and exits instead of running anything. Probe for a
+rem real interpreter of a usable version rather than just its presence.
+python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
 if errorlevel 1 (
-    echo [X] Python was not found on PATH.
-    echo     Install Python 3.10 or newer from https://python.org/downloads/
+    echo [X] No usable Python 3.10 or newer was found on PATH.
+    echo     Install it from https://www.python.org/downloads/
     echo     and tick "Add python.exe to PATH" during setup.
+    echo     If the Microsoft Store opened instead, close it: that is the Store
+    echo     alias pretending to be Python, not a real install.
     goto :fail
 )
 
