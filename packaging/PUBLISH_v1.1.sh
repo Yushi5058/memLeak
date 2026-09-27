@@ -48,6 +48,23 @@ fi
 
 [ -f "$NOTES" ] || die "release notes missing: $NOTES"
 
+# The artefacts on disk were built from the working tree, not from the tag, so a
+# tag pointing somewhere else means the release page's auto-generated source
+# download disagrees with the files being attached.
+if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+    tag_commit=$(git rev-list -n1 "$TAG")
+    head_commit=$(git rev-parse HEAD)
+    if [ "$tag_commit" != "$head_commit" ]; then
+        printf '\n[warn] tag %s is at %s but these artefacts were built from %s.\n' \
+            "$TAG" "$(git rev-parse --short "$tag_commit")" "$(git rev-parse --short "$head_commit")"
+        printf 'Codeberg generates the source download from the tag, so visitors will\n'
+        printf 'get different source than the attached files. Retag, or set TAG to a tag\n'
+        printf 'that matches, or accept this deliberately by rerunning past the warning.\n\n'
+    fi
+else
+    printf '\n[warn] no local tag %s. Fetch tags first: git fetch --tags\n\n' "$TAG"
+fi
+
 missing=()
 for asset in "${ASSETS[@]}"; do
     [ -f "$asset" ] || missing+=("$asset")
