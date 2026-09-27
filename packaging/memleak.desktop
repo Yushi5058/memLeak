@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=memLeak
+Comment=A PyWeek jam platformer about spending a finite budget of Earth years.
+Exec=AppRun
+Icon=memleak
+Categories=Game;ArcadeGame;
+Terminal=false
+StartupNotify=true
