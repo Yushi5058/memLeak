@@ -5,12 +5,54 @@ A PyWeek jam platformer about spending a finite budget of Earth years.
 You stand still and the planet loses time. Reach the gate before the
 allocation hits zero or your vital chronos deplete.
 
-## Requirements
+## Play it
 
-- Python 3.10 or newer
-- A display; the game opens a 960x540 window
+Most people just want to play. Grab a build, nothing to install.
 
-## Install and run
+| Platform | File | How to run |
+| --- | --- | --- |
+| Windows | `memLeak-1.1.exe` | Double-click it. |
+| Linux | `memLeak-1.1-x86_64.AppImage` | Right-click, *Allow to run*, then double-click. Or from a terminal: `./memLeak-1.1-x86_64.AppImage` |
+| Linux without FUSE | `memLeak-1.1-linux-x86_64.tar.gz` | Unpack it, then run `./run_game.sh`. |
+| Any, from source | `memLeak-1.1.zip` | Needs Python 3.10+, see [Run from source](#run-from-source). |
+
+Downloads are on the [releases page](https://codeberg.org/yushi_61/memLeak/releases).
+The Linux builds need glibc 2.17 or newer, which covers Ubuntu 18.04+, Debian 10+,
+Fedora and Arch. macOS is not prebuilt; run it from source.
+
+You need a display. The game opens a 960x540 window and is keyboard-only.
+
+### If something goes wrong
+
+**Windows says "Windows protected your PC".** The build is not code-signed, so
+SmartScreen cannot verify who published it. Click *More info*, then *Run anyway*.
+This warning is about the missing signature, not about the game.
+
+**Windows or your antivirus flags the file as a virus.** PyInstaller output is
+frequently flagged because it unpacks itself at startup, which looks like malware
+to heuristic scanners. There is no malware: it is a plain Python program bundled
+into one file. The releases page lists a SHA-256 for each download if you want to
+check the file is intact.
+
+**Linux: "Permission denied".** The download lost its executable bit. Fix it with:
+
+```sh
+chmod +x memLeak-1.1-x86_64.AppImage
+```
+
+**Linux: "AppImages require FUSE to run".** Your system has no FUSE, which some
+minimal and hardened installs omit. Use the `.tar.gz` instead; it is the same
+program and needs no FUSE at all.
+
+**Linux: "GLIBC_2.xx not found".** You are on a distribution older than the
+builds support. See the glibc note above.
+
+**Nothing happens when I launch it.** The game is keyboard-only, so click the
+window once to focus it, then press `Enter`.
+
+## Run from source
+
+You only need this if you want to change the code.
 
 ### Linux / macOS
 
@@ -151,12 +193,16 @@ assets/              fonts and their licences, chiptune audio, sprite art
 These live in the development repository only and are not shipped in the archive:
 
 ```
-tools/build_release.py  builds the release archive from an allowlist
-tools/fix_sprites.py    repairs sprite art: despeckle, crop, aspect-fit
-tools/gen_sfx.py     regenerates the sound effects
-tools/gen_music.py   regenerates the chiptune loops
-tests/               unit tests
-docs/SPRITES.md      visual brief and image-generation prompts
+tools/build_release.py      builds the release archive from an allowlist
+tools/build_executable.py   bundles a standalone binary with PyInstaller
+tools/build_linux_release.sh  portable AppImage + tar.gz, via a manylinux container
+tools/build_windows.bat     one-file Windows build, run on a Windows machine
+tools/fix_sprites.py        repairs sprite art: despeckle, crop, aspect-fit
+tools/gen_sfx.py            regenerates the sound effects
+tools/gen_music.py          regenerates the chiptune loops
+packaging/                  AppImage desktop entry and icon
+tests/                      unit tests
+docs/SPRITES.md             visual brief and image-generation prompts
 ```
 
 `PROLOGUE.txt` introduces the first chamber. Each later chamber has its own
@@ -174,7 +220,7 @@ fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour so pix
 Everything in this section needs the full repository, not the release archive.
 
 ```sh
-python -m unittest discover -s tests -t .   # 286 tests
+python -m unittest discover -s tests -t .   # 293 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music
