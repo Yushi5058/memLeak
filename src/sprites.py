@@ -10,13 +10,21 @@ from src.settings import (
 )
 
 DEFAULT_SPRITES_DIR = Path(__file__).resolve().parent.parent / "assets" / "sprites"
-SPRITE_NAMES = ("player", "hazard_falling", "portal")
+SPRITE_NAMES = (
+    "player",
+    "hazard_falling",
+    "hazard_moving",
+    "hazard_blackhole",
+    "portal",
+)
 TILE_NAMES = ("tile_platform", "tile_hazard")
 
 ART_SCALE = 2
 HITBOX_SIZES = {
     "player": (12, 16),
     "hazard_falling": (10, 14),
+    "hazard_moving": (12, 10),
+    "hazard_blackhole": (14, 14),
     "portal": (14, 20),
 }
 ART_SIZES = {
@@ -29,6 +37,8 @@ FALLBACK_COLORS = {
     "tile_platform": GROUND_COLOR,
     "tile_hazard": HAZARD_COLOR,
     "hazard_falling": HAZARD_COLOR,
+    "hazard_moving": HAZARD_COLOR,
+    "hazard_blackhole": HAZARD_COLOR,
     "portal": TARGET_COLOR,
 }
 

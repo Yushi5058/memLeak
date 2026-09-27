@@ -8,6 +8,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame
 
+from src.levels import LEVELS
 from src.sprites import (
     ART_SCALE,
     ART_SIZES,
@@ -146,6 +147,41 @@ class SpritesTest(unittest.TestCase):
             self.assertFalse(sprites.has("player"))
             sprites.draw_sprite(self.canvas, "player", pygame.Rect(0, 0, 8, 8), (255, 0, 255))
         self.assertEqual(self.canvas.get_at((4, 4))[:3], (255, 0, 255))
+
+
+class BundledArtTest(unittest.TestCase):
+    """Guards the real assets/sprites tree, which the rest of this file never touches.
+
+    A hazard whose sprite_name is absent from SPRITE_NAMES still draws, because
+    draw_sprite falls back to a rectangle. Nothing raises, and missing() stays
+    empty because it only reports names it already knows. That silent fallback
+    shipped once, so it gets a test that would have caught it.
+    """
+
+    def setUp(self):
+        pygame.init()
+        self.sprites = Sprites()
+
+    def test_bundled_art_is_complete(self):
+        self.assertEqual(self.sprites.missing(), [])
+
+    def test_every_mover_sprite_name_is_a_registered_slot(self):
+        for level in LEVELS:
+            for mover in level.movers:
+                self.assertIn(mover.sprite_name, SPRITE_NAMES, f"{level.name}: {mover.sprite_name}")
+
+    def test_every_sprite_slot_has_a_hitbox_size(self):
+        for name in SPRITE_NAMES:
+            self.assertIn(name, HITBOX_SIZES, name)
+        for name in TILE_NAMES:
+            self.assertIn(name, TILE_SIZES, name)
+
+    def test_robot_and_black_hole_art_render_at_their_hitbox(self):
+        for name, hitbox in (("hazard_moving", (12, 10)), ("hazard_blackhole", (14, 14))):
+            with self.subTest(name):
+                self.assertEqual(HITBOX_SIZES[name], hitbox)
+                self.assertTrue(self.sprites.has(name))
+                self.assertEqual(self.sprites.images[name].get_size(), ART_SIZES[name])
 
 
 if __name__ == "__main__":

@@ -96,28 +96,38 @@ count until unlocked. Discover them through disciplined play.
 
 ## Sprites
 
-The game ships with rectangle placeholders and requires no external art to run. Drop
-PNGs into `assets/sprites/` and they are picked up automatically at the
-next launch; anything missing or unreadable falls back per-sprite.
+The game ships with hand-made pixel art for every character, hazard and tile, so it needs
+no external downloads to run. Each PNG is rescaled to the box matching its hitbox, and
+anything missing or unreadable falls back to a coloured rectangle per-sprite, so the
+game still runs if the art is stripped.
 
 | File | Target size | Replaces | Tiled? |
 | --- | --- | --- | --- |
 | `player.png` | 24x32 | Player hitbox (12x16) | no |
 | `hazard_falling.png` | 20x28 | Falling meteorite (10x14) | no |
-| `hazard_moving.png` | 24x32 | Time-infected robot (12x16) | no |
-| `hazard_blackhole.png` | 28x40 | Black hole singularity (14x20) | no |
+| `hazard_moving.png` | 24x20 | Time-infected robot (12x10) | no |
+| `hazard_blackhole.png` | 28x28 | Black hole singularity (14x14) | no |
 | `portal.png` | 28x40 | Exit gate (14x20) | no |
 | `tile_platform.png` | 16x16 | Ground and ledges | yes |
 | `tile_hazard.png` | 8x8 | Floor spikes and wall barriers | yes |
 
-Images are rescaled to their canonical box on load. `docs/SPRITES.md` contains
-the complete visual brief, palette hex locks, and image-generation prompts.
+Images are rescaled to their canonical box on load. The complete visual brief, palette
+hex locks and image-generation prompts live in `docs/SPRITES.md` in the development
+repository, which is not part of the release archive.
 
 ## Project layout
 
+The first block below is what ships in the release archive.
+
 ```
+run_game.py          version guard, then hands off to main
 main.py              event pump, state dispatch, rendering
-src/settings.py      tuning constants, physics budgets, and palette
+LICENSE              MIT licence for the game source
+requirements.txt     pinned dependency
+PROLOGUE.txt         script shown before the first chamber
+CHAPTER_I.txt        script shown on entering the second chamber
+CHAPTER_II.txt       script shown on entering the third chamber
+src/settings.py      palette, window and display tuning constants
 src/states.py        the State enum
 src/menu.py          reusable keyboard menu widget
 src/screens.py       main, pause, level select, settings, achievements
@@ -134,9 +144,16 @@ src/audio.py         sfx and music playback, degrades to silence
 src/overlay.py       cached CRT scanline and vignette
 src/prologue.py      phased typewriter reveal of PROLOGUE.txt
 src/chapters.py      CHAPTER_I/II scripts and on-screen narration manager
+assets/              fonts and their licences, chiptune audio, sprite art
+```
+
+These live in the development repository only and are not shipped in the archive:
+
+```
 tools/gen_sfx.py     regenerates the sound effects
 tools/gen_music.py   regenerates the chiptune loops
 tests/               unit tests
+docs/SPRITES.md      visual brief and image-generation prompts
 ```
 
 `PROLOGUE.txt` introduces the first chamber. Each later chamber has its own
@@ -146,13 +163,15 @@ tests/               unit tests
 Once every chamber has been cleared, the final cleared screen offers `Enter`
 to return to the main menu. Everything remains replayable, and achievements stay reachable.
 
-Balance lives entirely in `src/settings.py` and `src/levels.py`. The simulation runs at a
+Balance lives entirely in `src/levels.py`. The simulation runs at a
 fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour so pixels stay square.
 
 ## Development
 
+Everything in this section needs the full repository, not the release archive.
+
 ```sh
-python -m unittest discover -s tests -t .   # 273 tests
+python -m unittest discover -s tests -t .   # 277 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music
@@ -192,10 +211,25 @@ grid, rendering 1:1 at 14px with crisp square pixels.
 
 ### Audio
 
-All sound effects and music are synthesised from scratch by
-`tools/gen_sfx.py` and `tools/gen_music.py` and carry no third-party rights.
+All sound effects and music are synthesised from scratch for this project and carry no
+third-party rights. The generator scripts live in the development repository and are
+not part of the release archive.
 
 ### Sprites
 
-No external sprite art is bundled. The game ships coloured rectangle fallbacks and only
-loads PNGs you place in `assets/sprites/`.
+No external sprite art is bundled. Everything in `assets/sprites/` was drawn for this
+entry and carries no third-party rights.
+
+## License
+
+The game source code is released under the **MIT License** — the full text is in
+`LICENSE`.
+
+The bundled fonts keep their own separate licences, listed under
+[Third-party assets](#third-party-assets): Pix437 IBM EGA 8x8 under CC BY-SA 4.0, and
+Micro 5 under the SIL Open Font License 1.1. The MIT licence does not apply to them.
+
+This release is version 1.0, submitted to PyWeek. **Any later version may be released
+under different terms**, including a commercial licence, so check the licence that
+ships with the version you have rather than assuming MIT carries forward.
+

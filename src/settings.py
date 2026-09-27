@@ -25,9 +25,6 @@ TEXT_COLOR = (240, 240, 240)
 DIM_COLOR = (104, 104, 124)  # Locked or unavailable menu entries
 EARNED_TILE_COLOR = (24, 52, 34)  # Achievement row backing, already earned
 LOCKED_TILE_COLOR = (46, 26, 36)  # Achievement row backing, still locked
-START_EARTH_YEARS = 900.0  # Starting allocation
-DRAIN_RATE = 8.0  # Earth years lost per real second
-HAZARD_PENALTY = 50.0  # Penalty on hazard hit
 
 # Falling hazard spawner
 FALLING_HAZARD_WIDTH = 10
