@@ -68,17 +68,17 @@ project and carry no third-party rights.
 SHA-256, verified against the files as built:
 
 ```
-5d4c1db2ae4937233d8d6274f416a7b739680151f6e42d9743427dab5c6a6dc1  memLeak-1.1.zip
-ad9765779ba76b2a216d5c43fa34ae6aeeb1911ad2b853f3781f87d5e8a9c7f1  memLeak-1.1-x86_64.AppImage
-29ebee785cd80633a17b81f5d3869f8dc587a7231face0aa4ab09758506ab273  memLeak-1.1-linux-x86_64.tar.gz
-d05b372d27f7b57f151c7a5ffe47d068e7b4b3652fa4b59cafeb05fb93c33b53  memLeak-1.1.exe
+e4e6457db6046db91f328685d9ee9dc0406f0e3f1cbe644689119f1b05a31a88  memLeak-1.1.zip
+9ab4d42dc2da92dd07903b1ea21c15e8be6e70c9aa39f56e574478b4e18a74b7  memLeak-1.1-x86_64.AppImage
+e20b651ba97cb91064a3546123d9bef1d02406e6251e6a62846c94e148dbbc6e  memLeak-1.1-linux-x86_64.tar.gz
+4da49a7a8706e9f16ade64a0af02d783a3808bb3fc7555d00ebf6ce06baa7cc9  memLeak-1.1.exe
 ```
 
 | File | Bytes |
 | --- | --- |
-| `memLeak-1.1.zip` | 921,810 |
+| `memLeak-1.1.zip` | 921,808 |
 | `memLeak-1.1-x86_64.AppImage` | 24,040,640 |
-| `memLeak-1.1-linux-x86_64.tar.gz` | 23,809,534 |
-| `memLeak-1.1.exe` | 23,178,546 |
+| `memLeak-1.1-linux-x86_64.tar.gz` | 23,809,009 |
+| `memLeak-1.1.exe` | 23,179,236 |
 
 Largest is about 24 MB, well under the 100 MB per-asset ceiling.

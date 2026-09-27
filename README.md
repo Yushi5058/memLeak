@@ -282,7 +282,7 @@ The game source code is released under the **MIT License** — the full text is 
 `LICENSE`.
 
 The bundled fonts keep their own separate licences, listed under
-[Third-party assets](#third-party-assets): Pix437 IBM EGA 8x8 under CC BY-SA 4.0, and
+[Third-party assets](#third-party-assets): Px437 IBM EGA 8x8 under CC BY-SA 4.0, and
 Micro 5 under the SIL Open Font License 1.1. The MIT licence does not apply to them.
 
 Version 1.0 was submitted to PyWeek. **Any later version may be released
