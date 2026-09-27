@@ -68,7 +68,7 @@ project and carry no third-party rights.
 SHA-256, verified against the files as built:
 
 ```
-e4e6457db6046db91f328685d9ee9dc0406f0e3f1cbe644689119f1b05a31a88  memLeak-1.1.zip
+e2c11cbe51ab76085e1faffcfda8a9ad8cd2ca13338dbdf4170d4a8fd32f551e  memLeak-1.1.zip
 9ab4d42dc2da92dd07903b1ea21c15e8be6e70c9aa39f56e574478b4e18a74b7  memLeak-1.1-x86_64.AppImage
 e20b651ba97cb91064a3546123d9bef1d02406e6251e6a62846c94e148dbbc6e  memLeak-1.1-linux-x86_64.tar.gz
 4da49a7a8706e9f16ade64a0af02d783a3808bb3fc7555d00ebf6ce06baa7cc9  memLeak-1.1.exe
@@ -76,7 +76,7 @@ e20b651ba97cb91064a3546123d9bef1d02406e6251e6a62846c94e148dbbc6e  memLeak-1.1-li
 
 | File | Bytes |
 | --- | --- |
-| `memLeak-1.1.zip` | 921,808 |
+| `memLeak-1.1.zip` | 921,850 |
 | `memLeak-1.1-x86_64.AppImage` | 24,040,640 |
 | `memLeak-1.1-linux-x86_64.tar.gz` | 23,809,009 |
 | `memLeak-1.1.exe` | 23,179,236 |
