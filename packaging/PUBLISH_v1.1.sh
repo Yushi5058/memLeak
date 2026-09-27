@@ -15,7 +15,11 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
 SLUG="yushi_61/memLeak"
-TAG="v1.1"
+# Overridable because tag v1.1 was pushed before the launcher bug was found, so
+# it points at a commit whose build script cannot produce a working artefact.
+# Resolve that by retagging or by naming a new tag, then run with TAG set:
+#     TAG=v1.1.1 ./packaging/PUBLISH_v1.1.sh
+TAG="${TAG:-v1.1}"
 TITLE="memLeak 1.1"
 NOTES="packaging/RELEASE_NOTES_v1.1.md"
 SERVER="https://codeberg.org"
