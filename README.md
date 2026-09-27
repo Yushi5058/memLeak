@@ -16,7 +16,8 @@ Most people just want to play. Grab a build, nothing to install.
 | Linux without FUSE | `memLeak-1.1-linux-x86_64.tar.gz` | Unpack it, then run `./run_game.sh`. |
 | Any, from source | `memLeak-1.1.zip` | Needs Python 3.10+, see [Run from source](#run-from-source). |
 
-Downloads are on the [releases page](https://codeberg.org/yushi_61/memLeak/releases).
+Downloads are on the [Codeberg releases page](https://codeberg.org/yushi_61/memLeak/releases).
+The same files are mirrored on [GitHub](https://github.com/Yushi5058/memLeak/releases).
 The Linux builds need glibc 2.17 or newer, which covers Ubuntu 18.04+, Debian 10+,
 Fedora and Arch. macOS is not prebuilt; run it from source.
 
