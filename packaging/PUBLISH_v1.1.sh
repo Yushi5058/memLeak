@@ -48,21 +48,30 @@ fi
 
 [ -f "$NOTES" ] || die "release notes missing: $NOTES"
 
-# The artefacts on disk were built from the working tree, not from the tag, so a
-# tag pointing somewhere else means the release page's auto-generated source
-# download disagrees with the files being attached.
+# Codeberg builds the release page's source download from the tag, while these
+# artefacts come from the working tree. A tag pointing elsewhere therefore serves
+# visitors source that cannot reproduce the files published beside it, so this
+# stops the release unless the mismatch is acknowledged on purpose.
 if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
     tag_commit=$(git rev-list -n1 "$TAG")
     head_commit=$(git rev-parse HEAD)
     if [ "$tag_commit" != "$head_commit" ]; then
-        printf '\n[warn] tag %s is at %s but these artefacts were built from %s.\n' \
-            "$TAG" "$(git rev-parse --short "$tag_commit")" "$(git rev-parse --short "$head_commit")"
-        printf 'Codeberg generates the source download from the tag, so visitors will\n'
-        printf 'get different source than the attached files. Retag, or set TAG to a tag\n'
-        printf 'that matches, or accept this deliberately by rerunning past the warning.\n\n'
+        if [ "${ALLOW_TAG_MISMATCH:-0}" = "1" ]; then
+            printf '\n[warn] shipping tag %s (%s) against artefacts built from %s, as acknowledged.\n\n' \
+                "$TAG" "$(git rev-parse --short "$tag_commit")" "$(git rev-parse --short "$head_commit")"
+        else
+            printf '\n[X] tag %s is at %s but these artefacts were built from %s.\n' \
+                "$TAG" "$(git rev-parse --short "$tag_commit")" "$(git rev-parse --short "$head_commit")" >&2
+            printf '    Codeberg takes the release source download from the tag, so it\n' >&2
+            printf '    would not match the files being attached.\n\n' >&2
+            printf 'Retag, or publish against a tag that matches:  TAG=<tag> %s\n' "$0" >&2
+            printf 'To ship this mismatch deliberately:            ALLOW_TAG_MISMATCH=1 %s\n\n' "$0" >&2
+            exit 1
+        fi
     fi
 else
-    printf '\n[warn] no local tag %s. Fetch tags first: git fetch --tags\n\n' "$TAG"
+    printf '\n[X] no local tag %s. Fetch tags first: git fetch --tags\n\n' "$TAG" >&2
+    exit 1
 fi
 
 missing=()

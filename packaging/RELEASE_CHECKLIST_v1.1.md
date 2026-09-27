@@ -12,8 +12,10 @@ does not ship to the releases page.
   the build script there emitted `memLeak-$1.1`, so that commit cannot produce a
   runnable artefact. The attached binaries are fine, but Codeberg generates the
   release page's source download from the tag, so visitors would get source that
-  does not match them. `PUBLISH_v1.1.sh` warns about this at publish time. Either
-  retag to the fix commit, or pass `TAG=<newtag>`.
+  does not match them. `PUBLISH_v1.1.sh` therefore refuses to run until this is
+  resolved. Either retag to the fix commit, publish against a tag that matches,
+  or, if shipping the mismatch is genuinely intended, acknowledge it explicitly
+  with `ALLOW_TAG_MISMATCH=1`.
 - **The Windows `.exe` is not built yet.** Build it on a Windows machine with
   Python 3.10+ on PATH: `tools\build_windows.bat`.
 - **The repository must be public** and `tea` authenticated:
@@ -29,7 +31,8 @@ does not ship to the releases page.
    is not optional bookkeeping.
 3. Resolve the tag as above.
 4. Confirm the repository is public and `tea login list --output json` is not `[]`.
-5. `./packaging/PUBLISH_v1.1.sh` — add `TAG=<newtag>` if the tag changed.
+5. `./packaging/PUBLISH_v1.1.sh` — add `TAG=<tag>` if you published against a
+   different tag, or `ALLOW_TAG_MISMATCH=1` if you decided to ship the mismatch.
 6. Verify with `tea releases --repo yushi_61/memLeak`, then download each asset
    and check it against the published checksums.
 
