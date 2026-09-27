@@ -1,0 +1,136 @@
+"""Build a standalone memLeak executable with PyInstaller.
+
+Aimed at people who have no Python installed, so the result has to carry the
+interpreter, pygame-ce and every asset in one artefact.
+
+Asset paths in the game are all `Path(__file__).resolve().parent.parent`, which
+inside a frozen build points at PyInstaller's extraction directory, so the data
+files must keep the repository's own layout. That means `assets/sounds/jump.wav`
+has to land at `<bundle>/assets/sounds/jump.wav`, not flattened. The allowlist
+is imported from build_release.py so the two packagers cannot drift apart and
+ship a different set of files.
+
+Run from the repository root:
+
+    .venv-build/bin/python tools/build_executable.py
+    .venv-build/bin/python tools/build_executable.py --onedir
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import subprocess
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO))
+
+from src.settings import VERSION  # noqa: E402
+
+# PyInstaller takes SOURCE:DEST, except on Windows where the colon is a drive
+# letter separator and it wants a semicolon.
+SEPARATOR = ";" if sys.platform == "win32" else ":"
+
+# Shipped so the MIT licence travels with the binary, as the licence requires.
+EXTRA_DATA = ("LICENSE",)
+
+# Pulled in by pygame-ce's SDL bindings, not used by the game itself.
+EXCLUDES = (
+    "tkinter",
+    "numpy",
+    "PIL",
+    "pytest",
+    "unittest",
+    "pydoc_data",
+    "lib2to3",
+    "setuptools",
+    "pip",
+)
+
+
+def release_allowlist() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    spec = importlib.util.spec_from_file_location(
+        "build_release_under_test", REPO / "tools" / "build_release.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.TOP_FILES, module.ASSET_FILES
+
+
+def data_files() -> list[tuple[str, str]]:
+    """Return (source, destination-directory) pairs preserving repo layout."""
+    top, assets = release_allowlist()
+    pairs = [(str(REPO / name), str(Path(name).parent)) for name in (*assets, *EXTRA_DATA)]
+    pairs += [(str(REPO / name), ".") for name in top if name.endswith(".txt")]
+    return pairs
+
+
+def command(outdir: Path, onedir: bool, name: str) -> list[str]:
+    args = [
+        sys.executable,
+        "-m",
+        "PyInstaller",
+        "--noconfirm",
+        "--clean",
+        "--name",
+        name,
+        "--distpath",
+        str(outdir / "dist"),
+        "--workpath",
+        str(outdir / "work"),
+        "--specpath",
+        str(outdir),
+        # SDL2 shared objects and pygame's own data files are loaded at runtime
+        # by name, so static analysis cannot discover them.
+        "--collect-all",
+        "pygame",
+        "--onedir" if onedir else "--onefile",
+    ]
+    for source, dest in data_files():
+        args += ["--add-data", f"{source}{SEPARATOR}{dest}"]
+    for module in EXCLUDES:
+        args += ["--exclude-module", module]
+    args.append(str(REPO / "run_game.py"))
+    return args
+
+
+def produced_path(outdir: Path, name: str, onedir: bool) -> Path:
+    dist = outdir / "dist"
+    if onedir:
+        return dist / name
+    for candidate in (dist / name, dist / f"{name}.exe"):
+        if candidate.exists():
+            return candidate
+    return dist / name
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Build a standalone memLeak executable.")
+    parser.add_argument("--onedir", action="store_true", help="folder instead of one file")
+    parser.add_argument("--outdir", default=str(REPO / "dist-exe"))
+    parser.add_argument("--name", default=f"memLeak-{VERSION}")
+    args = parser.parse_args()
+
+    outdir = Path(args.outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    argv = command(outdir, args.onedir, args.name)
+    print(f"bundling {len(data_files())} data files with PyInstaller", flush=True)
+    if subprocess.run(argv, cwd=REPO).returncode:
+        return 1
+
+    produced = produced_path(outdir, args.name, args.onedir)
+    if not produced.exists():
+        print(f"expected output missing: {produced}")
+        return 1
+    if produced.is_dir():
+        size = sum(f.stat().st_size for f in produced.rglob("*") if f.is_file())
+    else:
+        size = produced.stat().st_size
+    print(f"built {produced}  {size / 1_048_576:.1f} MB")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

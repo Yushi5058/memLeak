@@ -13,6 +13,9 @@ dist/
 *.zip
 *.tar.gz
 *.exe
+dist-exe/
+.venv-build/
+*.AppImage
 
 # Editor & OS
 .vscode/
