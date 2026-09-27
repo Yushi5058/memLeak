@@ -49,12 +49,16 @@ class Sprites:
         self.images: dict[str, pygame.Surface] = {}
         for name in (*SPRITE_NAMES, *TILE_NAMES):
             target = ART_SIZES.get(name) or TILE_SIZES.get(name)
-            image = self._load(self.dir / f"{name}.png", target)
+            image = self._load(self.dir / f"{name}.png", target, letterbox=name in ART_SIZES)
             if image is not None:
                 self.images[name] = image
 
     @staticmethod
-    def _load(path: Path, target: tuple[int, int] | None) -> pygame.Surface | None:
+    def _load(
+        path: Path,
+        target: tuple[int, int] | None,
+        letterbox: bool = False,
+    ) -> pygame.Surface | None:
         if not path.is_file():
             return None
         try:
@@ -67,12 +71,27 @@ class Sprites:
             pass
         if target is None or image.get_size() == target:
             return image
-        shrinking = image.get_width() >= target[0] and image.get_height() >= target[1]
+        if not letterbox:
+            shrinking = image.get_width() >= target[0] and image.get_height() >= target[1]
+            resample = pygame.transform.smoothscale if shrinking else pygame.transform.scale
+            try:
+                return resample(image, target)
+            except pygame.error:
+                return image
+        width, height = image.get_size()
+        scale = min(target[0] / width, target[1] / height)
+        fitted = (max(1, round(width * scale)), max(1, round(height * scale)))
+        shrinking = fitted[0] <= width and fitted[1] <= height
         resample = pygame.transform.smoothscale if shrinking else pygame.transform.scale
         try:
-            return resample(image, target)
+            scaled = resample(image, fitted)
         except pygame.error:
             return image
+        if fitted == target:
+            return scaled
+        canvas = pygame.Surface(target, pygame.SRCALPHA)
+        canvas.blit(scaled, ((target[0] - fitted[0]) // 2, (target[1] - fitted[1]) // 2))
+        return canvas
 
     def has(self, name: str) -> bool:
         return name in self.images

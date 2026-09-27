@@ -1,3 +1,6 @@
+# Release identity
+VERSION = "1.1"  # Sole version source; build_release.py names the archive from this
+
 # Screen settings
 DEBUG = False  # Opt-in per-frame physics trace on stdout
 INTERNAL_WIDTH = 320

@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from collections import deque
 from pathlib import Path
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -149,6 +150,31 @@ class SpritesTest(unittest.TestCase):
         self.assertEqual(self.canvas.get_at((4, 4))[:3], (255, 0, 255))
 
 
+    def test_wrong_aspect_sprite_is_letterboxed_not_stretched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sprites_dir = Path(tmp)
+            make_png(sprites_dir / "player.png", (48, 12), GREEN)
+            sprites = Sprites(assets_dir=sprites_dir)
+            art = sprites.images["player"]
+        target_w, target_h = ART_SIZES["player"]
+        self.assertEqual(art.get_size(), (target_w, target_h))
+        band_h = round(12 * min(target_w / 48, target_h / 12))
+        top = (target_h - band_h) // 2
+        self.assertEqual(art.get_at((target_w // 2, top - 1))[3], 0)
+        self.assertEqual(art.get_at((target_w // 2, top + band_h // 2))[3], 255)
+        self.assertEqual(art.get_at((target_w // 2, top + band_h))[3], 0)
+
+    def test_wrong_aspect_tile_is_stretched_to_fill_its_cell(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sprites_dir = Path(tmp)
+            make_png(sprites_dir / "tile_platform.png", (48, 12), GREEN)
+            sprites = Sprites(assets_dir=sprites_dir)
+            tile = sprites.images["tile_platform"]
+        self.assertEqual(tile.get_size(), TILE_SIZES["tile_platform"])
+        self.assertEqual(tile.get_at((0, 0))[3], 255)
+        self.assertEqual(tile.get_at((15, 15))[3], 255)
+
+
 class BundledArtTest(unittest.TestCase):
     """Guards the real assets/sprites tree, which the rest of this file never touches.
 
@@ -164,6 +190,39 @@ class BundledArtTest(unittest.TestCase):
 
     def test_bundled_art_is_complete(self):
         self.assertEqual(self.sprites.missing(), [])
+
+    def test_bundled_art_fills_its_box(self):
+        for name in SPRITE_NAMES:
+            with self.subTest(name):
+                art = self.sprites.images[name]
+                width, height = art.get_size()
+                lit = sum(
+                    1 for y in range(height) for x in range(width) if art.get_at((x, y))[3] > 16
+                )
+                self.assertGreater(lit / (width * height), 0.30, name)
+
+    def test_bundled_art_has_no_detached_specks(self):
+        for name in SPRITE_NAMES:
+            with self.subTest(name):
+                art = self.sprites.images[name]
+                width, height = art.get_size()
+                lit = {
+                    (x, y)
+                    for y in range(height)
+                    for x in range(width)
+                    if art.get_at((x, y))[3] > 16
+                }
+                self.assertTrue(lit, name)
+                start = min(lit)
+                reached = {start}
+                queue = deque([start])
+                while queue:
+                    x, y = queue.popleft()
+                    for neighbour in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                        if neighbour in lit and neighbour not in reached:
+                            reached.add(neighbour)
+                            queue.append(neighbour)
+                self.assertEqual(lit - reached, set(), f"{name} has detached specks")
 
     def test_every_mover_sprite_name_is_a_registered_slot(self):
         for level in LEVELS:

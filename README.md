@@ -97,8 +97,9 @@ count until unlocked. Discover them through disciplined play.
 ## Sprites
 
 The game ships with hand-made pixel art for every character, hazard and tile, so it needs
-no external downloads to run. Each PNG is rescaled to the box matching its hitbox, and
-anything missing or unreadable falls back to a coloured rectangle per-sprite, so the
+no external downloads to run. Each PNG is scaled to fit inside the box matching its
+hitbox **while preserving its aspect ratio**, then centred, so art is never stretched.
+Anything missing or unreadable falls back to a coloured rectangle per-sprite, so the
 game still runs if the art is stripped.
 
 | File | Target size | Replaces | Tiled? |
@@ -151,6 +152,7 @@ These live in the development repository only and are not shipped in the archive
 
 ```
 tools/build_release.py  builds the release archive from an allowlist
+tools/fix_sprites.py    repairs sprite art: despeckle, crop, aspect-fit
 tools/gen_sfx.py     regenerates the sound effects
 tools/gen_music.py   regenerates the chiptune loops
 tests/               unit tests
@@ -172,18 +174,21 @@ fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour so pix
 Everything in this section needs the full repository, not the release archive.
 
 ```sh
-python -m unittest discover -s tests -t .   # 277 tests
+python -m unittest discover -s tests -t .   # 286 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music
-python tools/build_release.py                # build memLeak-1.0.zip
+python tools/build_release.py                # build memLeak-<VERSION>.zip
 ```
 
 `tools/gen_sfx.py` and `tools/gen_music.py` use only the standard library
 and are deterministic, so regenerating produces byte-identical files.
 `tools/build_release.py` is deterministic too, and builds the archive from an
 explicit allowlist rather than an exclusion list, so agent traces and secret
-achievement notes cannot slip in by being forgotten.
+achievement notes cannot slip in by being forgotten. It takes the archive name
+from `VERSION` in `src/settings.py`, so a build cannot be published under a
+version the tree does not claim; pass `--package` to rebuild an older release
+deliberately, which warns when the name disagrees with `VERSION`.
 Tests set `SDL_VIDEODRIVER` and `SDL_AUDIODRIVER` to `dummy`, allowing them to run headless.
 
 ## Third-party assets
