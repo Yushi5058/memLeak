@@ -1,8 +1,5 @@
 # Release notes: memLeak v1.1
 
-Paste this into the Codeberg release body, then attach the four files listed at
-the bottom. The `v1.1` tag is already pushed and points at `141b7de`.
-
 ## Game fixes
 
 - Sprites are now letterboxed to fit inside the box matching their hitbox
@@ -84,13 +81,3 @@ memLeak-1.1.exe                                                       pending, n
 | `memLeak-1.1-linux-x86_64.tar.gz` | 23,809,534 |
 
 Largest is about 24 MB, well under the 100 MB per-asset ceiling.
-
-## Files to attach
-
-- `memLeak-1.1.zip` (source)
-- `memLeak-1.1-x86_64.AppImage` (Linux)
-- `memLeak-1.1-linux-x86_64.tar.gz` (Linux, no FUSE)
-- `memLeak-1.1.exe` (Windows)
-
-See `packaging/PUBLISH_v1.1.sh` for how this file and those attachments get
-uploaded. That script is internal and is not part of this release body.

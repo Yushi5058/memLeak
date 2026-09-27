@@ -285,7 +285,7 @@ The bundled fonts keep their own separate licences, listed under
 [Third-party assets](#third-party-assets): Pix437 IBM EGA 8x8 under CC BY-SA 4.0, and
 Micro 5 under the SIL Open Font License 1.1. The MIT licence does not apply to them.
 
-This release is version 1.0, submitted to PyWeek. **Any later version may be released
+Version 1.0 was submitted to PyWeek. **Any later version may be released
 under different terms**, including a commercial licence, so check the licence that
 ships with the version you have rather than assuming MIT carries forward.
 
