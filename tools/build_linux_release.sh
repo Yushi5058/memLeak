@@ -30,6 +30,22 @@ APPIMAGETOOL="${APPIMAGETOOL:-/tmp/memleak-appimagetool-x86_64.AppImage}"
 
 say() { printf '\n=== %s ===\n' "$1"; }
 
+# The payload is smoke-tested directly, but the launcher is what users actually
+# run, and a bad substitution in it produces a file that exists and still cannot
+# start. Check the substitution landed and that the target is really there.
+verify_launcher() {
+    launcher="$1"
+    binary="$2"
+    if grep -q 'VERSION' "$launcher"; then
+        echo "refusing to ship: $launcher still has an unsubstituted VERSION token" >&2
+        exit 1
+    fi
+    if [ ! -e "$binary" ]; then
+        echo "refusing to ship: $launcher points at a missing binary: $binary" >&2
+        exit 1
+    fi
+}
+
 command -v podman >/dev/null || { echo "podman is required" >&2; exit 1; }
 
 # Read the version from the single source of truth rather than pattern-matching
@@ -96,8 +112,9 @@ cat > "$APPDIR/AppRun" <<'APPRUN'
 HERE="$(dirname "$(readlink -f "$0")")"
 exec "$HERE/payload/memLeak-$VERSION" "$@"
 APPRUN
-sed -i "s/VERSION/$VERSION/" "$APPDIR/AppRun"
+sed -i "s/\$VERSION/$VERSION/g" "$APPDIR/AppRun"
 chmod +x "$APPDIR/AppRun"
+verify_launcher "$APPDIR/AppRun" "$APPDIR/payload/memLeak-$VERSION"
 
 say "Building the AppImage"
 ARCH=x86_64 "$APPIMAGETOOL" --no-appstream "$APPDIR" "$OUT/memLeak-$VERSION-x86_64.AppImage"
@@ -114,8 +131,9 @@ cat > "$TARDIR/run_game.sh" <<'LAUNCHER'
 HERE="$(dirname "$(readlink -f "$0")")"
 exec "$HERE/memLeak-$VERSION" "$@"
 LAUNCHER
-sed -i "s/VERSION/$VERSION/" "$TARDIR/run_game.sh"
+sed -i "s/\$VERSION/$VERSION/g" "$TARDIR/run_game.sh"
 chmod +x "$TARDIR/run_game.sh"
+verify_launcher "$TARDIR/run_game.sh" "$TARDIR/memLeak-$VERSION"
 cat > "$TARDIR/README.txt" <<'TARREADME'
 memLeak VERSION - Linux (glibc 2.17 or newer)
 

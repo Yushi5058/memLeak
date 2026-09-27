@@ -220,7 +220,7 @@ fixed 320x180 internal resolution and is scaled 3x with nearest-neighbour so pix
 Everything in this section needs the full repository, not the release archive.
 
 ```sh
-python -m unittest discover -s tests -t .   # 300 tests
+python -m unittest discover -s tests -t .   # 301 tests
 ruff check .                                 # lint
 python tools/gen_sfx.py                      # regenerate sounds
 python tools/gen_music.py                    # regenerate music

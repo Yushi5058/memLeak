@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -47,6 +48,13 @@ EXCLUDES = (
     "lib2to3",
     "setuptools",
     "pip",
+    # --collect-all pygame sweeps these back in. They are 11.8 MB of dead
+    # weight, and pygame/tests/fixtures/fonts carries PlayfairDisplay and
+    # PyGameMono, third-party fonts that would reach players with no licence
+    # text beside them. Nothing in the game imports any of it.
+    "pygame.tests",
+    "pygame.examples",
+    "pygame.docs",
 )
 
 
@@ -96,6 +104,24 @@ def command(outdir: Path, onedir: bool, name: str) -> list[str]:
     return args
 
 
+PRUNE_DIRS = ("pygame/tests", "pygame/examples", "pygame/docs")
+
+
+def prune_payload(root: Path) -> list[str]:
+    """Delete pygame's test, example and doc trees from a built payload.
+
+    --exclude-module cannot do this: --collect-data pygame walks the package
+    directory on disk, so the fixture fonts come along regardless.
+    """
+    removed = []
+    for rel in PRUNE_DIRS:
+        target = root / rel
+        if target.is_dir():
+            shutil.rmtree(target)
+            removed.append(rel)
+    return removed
+
+
 def produced_path(outdir: Path, name: str, onedir: bool) -> Path:
     dist = outdir / "dist"
     if onedir:
@@ -125,6 +151,11 @@ def main() -> int:
         print(f"expected output missing: {produced}")
         return 1
     if produced.is_dir():
+        payload = produced / "_internal"
+        if not payload.is_dir():
+            payload = produced
+        for rel in prune_payload(payload):
+            print(f"pruned {rel}")
         size = sum(f.stat().st_size for f in produced.rglob("*") if f.is_file())
     else:
         size = produced.stat().st_size

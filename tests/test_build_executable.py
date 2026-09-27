@@ -1,4 +1,5 @@
 import importlib.util
+import shutil
 import sys
 import unittest
 from pathlib import Path
@@ -85,6 +86,30 @@ class CommandContractTest(unittest.TestCase):
     def test_name_is_passed_through(self):
         argv = self.packager.command(self.outdir, onedir=False, name="custom-name")
         self.assertIn("custom-name", argv)
+
+    def test_pygame_bloat_is_pruned_from_the_payload(self):
+        # Asserting the --exclude-module flags are present is not enough: they
+        # were, and the 11.8 MB of fixtures still shipped, because
+        # --collect-data walks the package directory on disk. So check the
+        # payload actually loses the bloat and keeps what the game imports.
+        root = Path("/tmp/memleak-prune-check")
+        if root.exists():
+            shutil.rmtree(root)
+        for rel in ("pygame/tests/fixtures", "pygame/examples", "pygame/docs"):
+            (root / rel).mkdir(parents=True)
+            (root / rel / "stub.txt").write_text("x")
+        (root / "pygame" / "font.py").write_text("x")
+
+        removed = self.packager.prune_payload(root)
+
+        self.assertEqual(
+            sorted(removed), ["pygame/docs", "pygame/examples", "pygame/tests"]
+        )
+        self.assertFalse((root / "pygame" / "tests").exists())
+        self.assertFalse((root / "pygame" / "examples").exists())
+        self.assertFalse((root / "pygame" / "docs").exists())
+        self.assertTrue((root / "pygame" / "font.py").exists())
+        shutil.rmtree(root)
 
 
 class WindowsBranchTest(unittest.TestCase):
