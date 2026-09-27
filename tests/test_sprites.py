@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from collections import deque
 from pathlib import Path
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -199,6 +200,29 @@ class BundledArtTest(unittest.TestCase):
                     1 for y in range(height) for x in range(width) if art.get_at((x, y))[3] > 16
                 )
                 self.assertGreater(lit / (width * height), 0.30, name)
+
+    def test_bundled_art_has_no_detached_specks(self):
+        for name in SPRITE_NAMES:
+            with self.subTest(name):
+                art = self.sprites.images[name]
+                width, height = art.get_size()
+                lit = {
+                    (x, y)
+                    for y in range(height)
+                    for x in range(width)
+                    if art.get_at((x, y))[3] > 16
+                }
+                self.assertTrue(lit, name)
+                start = min(lit)
+                reached = {start}
+                queue = deque([start])
+                while queue:
+                    x, y = queue.popleft()
+                    for neighbour in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                        if neighbour in lit and neighbour not in reached:
+                            reached.add(neighbour)
+                            queue.append(neighbour)
+                self.assertEqual(lit - reached, set(), f"{name} has detached specks")
 
     def test_every_mover_sprite_name_is_a_registered_slot(self):
         for level in LEVELS:

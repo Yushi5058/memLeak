@@ -104,6 +104,7 @@ def repair(name: str, dry_run: bool) -> tuple[str, ...]:
 
     out = Image.new("RGBA", target, (0, 0, 0, 0))
     out.paste(scaled, ((target[0] - new_w) // 2, (target[1] - new_h) // 2), scaled)
+    loose_blobs, loose_pixels = drop_detached(out)
 
     if not dry_run:
         out.save(path, optimize=True)
@@ -120,8 +121,61 @@ def repair(name: str, dry_run: bool) -> tuple[str, ...]:
         f"{100.0 * dropped_ink / max(1, sum(b[0] for b in blobs)):.1f}% of ink)",
         f"  art-box ink {before} px ({before_pct:.1f}%) -> {after} px "
         f"({after_pct:.1f}%): {gain}",
+        f"  removed {loose_blobs} detached blobs ({loose_pixels} px) "
+        f"floating clear of the body",
     )
     return tuple(lines)
+
+
+def drop_detached(image: Image.Image) -> tuple[int, int]:
+    """Erase every blob not connected to the largest one.
+
+    Cropping to the kept blobs leaves detached chunks that are opaque but
+    separated from the body by transparent columns, so they survive the
+    despeckle and read as a stray pixel floating beside the sprite. Keeping
+    only the largest blob cannot damage the body, it can only remove those
+    loose fragments. Returns (blobs erased, pixels erased).
+    """
+    width, height = image.size
+    alpha = image.split()[3].tobytes()
+    seen = bytearray(width * height)
+    blobs: list[list[int]] = []
+    largest = 0
+    keep = -1
+    for start in range(width * height):
+        if alpha[start] <= ALPHA_FLOOR or seen[start]:
+            continue
+        queue = deque([start])
+        seen[start] = 1
+        pixels: list[int] = []
+        while queue:
+            pixel = queue.popleft()
+            pixels.append(pixel)
+            x, y = pixel % width, pixel // width
+            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                if 0 <= nx < width and 0 <= ny < height:
+                    nxt = ny * width + nx
+                    if alpha[nxt] > ALPHA_FLOOR and not seen[nxt]:
+                        seen[nxt] = 1
+                        queue.append(nxt)
+        if len(pixels) > largest:
+            largest = len(pixels)
+            keep = len(blobs)
+        blobs.append(pixels)
+
+    cleaned = bytearray(alpha)
+    erased_blobs = 0
+    erased_pixels = 0
+    for index, pixels in enumerate(blobs):
+        if index == keep:
+            continue
+        for pixel in pixels:
+            cleaned[pixel] = 0
+        erased_blobs += 1
+        erased_pixels += len(pixels)
+    if erased_blobs:
+        image.putalpha(Image.frombytes("L", (width, height), bytes(cleaned)))
+    return erased_blobs, erased_pixels
 
 
 def _ink(image: Image.Image) -> tuple[int, float]:
